@@ -4,9 +4,12 @@ import { motion } from 'framer-motion';
 import { getPolicies, acceptPolicy } from '../../lib/api/employee';
 import { useToastStore } from '../../store/toastStore';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useAuthStore } from '../../store/authStore';
 
 export default function Policies() {
-  useDocumentTitle('Policies');
+  useDocumentTitle('Company Policies');
+  const API_BASE = import.meta.env.VITE_API_URL?.replace("/api/v1", "") || "http://localhost:8000";
+  const user = useAuthStore((state) => state.user);
   const [policies, setPolicies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPolicy, setSelectedPolicy] = useState<any>(null);
@@ -90,7 +93,7 @@ export default function Policies() {
             <div className="p-6 flex flex-col gap-3 mt-auto">
               {policy.file_url && (
                 <a 
-                  href={`http://localhost:8000${policy.file_url}`} 
+                  href={`${API_BASE}${policy.file_url}`} 
                   target="_blank" 
                   rel="noreferrer"
                   className="w-full flex justify-center items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted transition-colors"

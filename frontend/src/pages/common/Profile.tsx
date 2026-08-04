@@ -7,6 +7,7 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 export default function Profile() {
   useDocumentTitle('My Profile');
+  const API_BASE = import.meta.env.VITE_API_URL?.replace("/api/v1", "") || "http://localhost:8000";
   const user = useAuthStore((state) => state.user);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -122,7 +123,7 @@ export default function Profile() {
           <div className="relative group cursor-pointer mb-4">
             <div className="h-24 w-24 rounded-full bg-primary/10 text-primary flex items-center justify-center text-3xl font-bold shadow-sm overflow-hidden border-2 border-primary/20">
               {profile?.profile_photo ? (
-                <img src={`http://localhost:8000${profile.profile_photo}`} alt="Profile" className="h-full w-full object-cover" />
+                <img src={`${API_BASE}${profile.profile_photo}`} alt="Profile" className="h-full w-full object-cover" />
               ) : (
                 profile?.first_name?.charAt(0) || user?.email.charAt(0).toUpperCase()
               )}
