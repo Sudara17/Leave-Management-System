@@ -2,7 +2,7 @@ import os
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "Enterprise Employee Leave Management System"
+    PROJECT_NAME: str = "Leave Management System"
     API_V1_STR: str = "/api/v1"
     
     # DATABASE
