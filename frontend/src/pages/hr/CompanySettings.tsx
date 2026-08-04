@@ -121,7 +121,7 @@ export default function CompanySettings() {
     try {
       await hrApiClient.delete(`/hr/leave-types/${id}`);
       useToastStore.getState().addToast('Leave type deleted successfully', 'success');
-      fetchData();
+      fetchAll();
     } catch (error: any) {
       if (error.response?.status === 400) {
          useToastStore.getState().addToast('Cannot delete leave type that is in use.', 'error');
