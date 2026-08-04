@@ -10,7 +10,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { getHRDashboardSummary, getHRRecentActivity, hrApiClient } from '../../lib/api/hr';
+import { hrApiClient } from '../../lib/api/hr';
 import EmployeeFormDrawer from '../../components/hr/EmployeeFormDrawer';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useToastStore } from '../../store/toastStore';
@@ -195,7 +195,7 @@ export default function HRDashboard() {
                   dataKey="value"
                   stroke="none"
                 >
-                  {deptData.map((_entry, index) => (
+                  {deptData.map((_entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

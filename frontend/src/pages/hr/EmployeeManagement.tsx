@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  Search, Filter, Plus, MoreVertical, UserX, 
+  Search, Filter, Plus, UserX, 
   ChevronLeft, ChevronRight, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

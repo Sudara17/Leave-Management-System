@@ -4,12 +4,10 @@ import { motion } from 'framer-motion';
 import { getPolicies, acceptPolicy } from '../../lib/api/employee';
 import { useToastStore } from '../../store/toastStore';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import { useAuthStore } from '../../store/authStore';
 
 export default function Policies() {
   useDocumentTitle('Company Policies');
   const API_BASE = import.meta.env.VITE_API_URL?.replace("/api/v1", "") || "http://localhost:8000";
-  const user = useAuthStore((state) => state.user);
   const [policies, setPolicies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPolicy, setSelectedPolicy] = useState<any>(null);
