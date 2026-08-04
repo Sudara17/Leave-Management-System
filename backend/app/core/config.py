@@ -26,6 +26,9 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+print("DATABASE_URL =", settings.DATABASE_URL)
+print("SQLALCHEMY_DATABASE_URI =", settings.SQLALCHEMY_DATABASE_URI)
+
 if settings.DATABASE_URL:
     settings.SQLALCHEMY_DATABASE_URI = settings.DATABASE_URL
 elif not settings.SQLALCHEMY_DATABASE_URI:
