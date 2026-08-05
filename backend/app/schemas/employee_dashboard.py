@@ -33,6 +33,7 @@ class LeaveApplyRequest(BaseModel):
     half_day_session: str | None = None
     reason: str
     use_annual_leave_fallback: bool = False
+    use_lwp_fallback: bool = False
 
 class LeaveRequestResponse(BaseModel):
     id: int
@@ -55,6 +56,7 @@ class LeaveRequestResponse(BaseModel):
     submitted_at: datetime | None = None
     sick_leave_days: float | None = None
     annual_leave_days: float | None = None
+    lwp_days: float | None = None
     
     model_config = ConfigDict(from_attributes=True)
 

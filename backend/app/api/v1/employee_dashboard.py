@@ -154,35 +154,63 @@ def apply_leave(
         
     sick_leave_days_used = None
     annual_leave_days_used = None
+    lwp_days_used = None
     annual_balance = None
     
     if not balance or balance.available < days:
         if "sick" in leave_type.leave_name.lower():
-            if not request.use_annual_leave_fallback:
-                raise HTTPException(status_code=400, detail={
-                    "error": "INSUFFICIENT_SICK_LEAVE",
-                    "message": "Insufficient Sick Leave Balance.",
-                    "available": float(balance.available) if balance else 0.0,
-                    "requested": float(days)
-                })
-            else:
-                annual_balance = db.query(LeaveBalance).join(LeaveType).filter(
-                    LeaveBalance.employee_id == employee.id,
-                    LeaveBalance.calendar_year == current_year,
-                    LeaveType.leave_name.ilike("%Annual%")
-                ).first()
-                
-                if not annual_balance:
-                    raise HTTPException(status_code=400, detail="Annual Leave balance not found for this employee.")
-                
-                available_sick = float(balance.available) if balance else 0.0
-                remaining_days = float(days) - available_sick
-                
-                if float(annual_balance.available) < remaining_days:
-                    raise HTTPException(status_code=400, detail="Insufficient Annual Leave Balance to cover the remaining days.")
-                
+            annual_balance = db.query(LeaveBalance).join(LeaveType).filter(
+                LeaveBalance.employee_id == employee.id,
+                LeaveBalance.calendar_year == current_year,
+                LeaveType.leave_name.ilike("%Annual%")
+            ).first()
+            
+            available_sick = float(balance.available) if balance else 0.0
+            available_annual = float(annual_balance.available) if annual_balance else 0.0
+            
+            if days <= available_sick + available_annual:
+                if not request.confirm_leave_split:
+                    raise HTTPException(status_code=400, detail={
+                        "error": "INSUFFICIENT_LEAVE_BALANCE",
+                        "message": "Insufficient Sick Leave Balance.",
+                        "available_sick": available_sick,
+                        "available_annual": available_annual,
+                        "requested_days": float(days),
+                        "remaining_days": float(days) - available_sick,
+                        "lwp_required": False
+                    })
                 sick_leave_days_used = available_sick
-                annual_leave_days_used = remaining_days
+                annual_leave_days_used = float(days) - available_sick
+            else:
+                if not request.confirm_leave_split:
+                    raise HTTPException(status_code=400, detail={
+                        "error": "INSUFFICIENT_LEAVE_BALANCE",
+                        "message": "Insufficient Leave Balance. LWP required.",
+                        "available_sick": available_sick,
+                        "available_annual": available_annual,
+                        "requested_days": float(days),
+                        "remaining_days": float(days) - available_sick - available_annual,
+                        "lwp_required": True
+                    })
+                sick_leave_days_used = available_sick
+                annual_leave_days_used = available_annual
+                lwp_days_used = float(days) - available_sick - available_annual
+                
+        elif "annual" in leave_type.leave_name.lower():
+            available_annual = float(balance.available) if balance else 0.0
+            
+            if not request.confirm_leave_split:
+                raise HTTPException(status_code=400, detail={
+                    "error": "INSUFFICIENT_LEAVE_BALANCE",
+                    "message": "Insufficient Annual Leave Balance. LWP required.",
+                    "available_sick": 0.0,
+                    "available_annual": available_annual,
+                    "requested_days": float(days),
+                    "remaining_days": float(days) - available_annual,
+                    "lwp_required": True
+                })
+            annual_leave_days_used = available_annual
+            lwp_days_used = float(days) - available_annual
         else:
             raise HTTPException(status_code=400, detail="Insufficient Leave Balance.")
         
@@ -205,30 +233,49 @@ def apply_leave(
             applied_on=datetime.now(timezone.utc),
             submitted_at=datetime.now(timezone.utc),
             sick_leave_days=sick_leave_days_used,
-            annual_leave_days=annual_leave_days_used
+            annual_leave_days=annual_leave_days_used,
+            lwp_days=lwp_days_used
         )
         db.add(leave_req)
         
         # Block balance (move from available to pending)
-        if sick_leave_days_used is not None and annual_leave_days_used is not None:
-            if balance and sick_leave_days_used > 0:
-                balance.available -= Decimal(str(sick_leave_days_used))
-                balance.pending += Decimal(str(sick_leave_days_used))
-            if annual_balance and annual_leave_days_used > 0:
-                annual_balance.available -= Decimal(str(annual_leave_days_used))
-                annual_balance.pending += Decimal(str(annual_leave_days_used))
+        if sick_leave_days_used is not None or annual_leave_days_used is not None or lwp_days_used is not None:
+            if sick_leave_days_used is not None and sick_leave_days_used > 0:
+                sick_bal = db.query(LeaveBalance).join(LeaveType).filter(
+                    LeaveBalance.employee_id == employee.id,
+                    LeaveBalance.calendar_year == current_year,
+                    LeaveType.leave_name.ilike("%Sick%")
+                ).first()
+                if sick_bal:
+                    sick_bal.available -= Decimal(str(sick_leave_days_used))
+                    sick_bal.pending += Decimal(str(sick_leave_days_used))
+            if annual_leave_days_used is not None and annual_leave_days_used > 0:
+                ann_bal = db.query(LeaveBalance).join(LeaveType).filter(
+                    LeaveBalance.employee_id == employee.id,
+                    LeaveBalance.calendar_year == current_year,
+                    LeaveType.leave_name.ilike("%Annual%")
+                ).first()
+                if ann_bal:
+                    ann_bal.available -= Decimal(str(annual_leave_days_used))
+                    ann_bal.pending += Decimal(str(annual_leave_days_used))
         else:
             if balance:
                 balance.available -= Decimal(str(days))
                 balance.pending += Decimal(str(days))
         
         # Audit log
+        audit_details = f"Applied for {days} days of leave. Reference: {reference_code}"
+        if lwp_days_used:
+            audit_details += f" (Sick: {sick_leave_days_used or 0}, Annual: {annual_leave_days_used or 0}, LWP: {lwp_days_used})"
+        elif sick_leave_days_used is not None and annual_leave_days_used is not None:
+            audit_details += f" (Sick: {sick_leave_days_used}, Annual: {annual_leave_days_used})"
+            
         audit_log = AuditLog(
             user_id=current_user.id,
             action="APPLY_LEAVE",
             role=employee.role.role_name if employee.role else "Employee",
             timestamp=datetime.now(timezone.utc),
-            details=f"Applied for {days} days of leave. Reference: {reference_code}"
+            details=audit_details
         )
         db.add(audit_log)
         
@@ -254,7 +301,8 @@ def apply_leave(
         manager_name=manager_name,
         submitted_at=leave_req.submitted_at,
         sick_leave_days=float(leave_req.sick_leave_days) if leave_req.sick_leave_days is not None else None,
-        annual_leave_days=float(leave_req.annual_leave_days) if leave_req.annual_leave_days is not None else None
+        annual_leave_days=float(leave_req.annual_leave_days) if leave_req.annual_leave_days is not None else None,
+        lwp_days=float(leave_req.lwp_days) if leave_req.lwp_days is not None else None
     )
 
 @router.post("/leave/{request_id}/withdraw")
@@ -286,22 +334,28 @@ def withdraw_leave(
         LeaveBalance.calendar_year == leave_req.applied_on.year
     ).first()
     
-    if leave_req.sick_leave_days is not None and leave_req.annual_leave_days is not None:
+    if leave_req.sick_leave_days is not None or leave_req.annual_leave_days is not None or leave_req.lwp_days is not None:
+        sick_bal = db.query(LeaveBalance).join(LeaveType).filter(
+            LeaveBalance.employee_id == leave_req.employee_id,
+            LeaveBalance.calendar_year == leave_req.applied_on.year,
+            LeaveType.leave_name.ilike("%Sick%")
+        ).first()
+        
         annual_balance = db.query(LeaveBalance).join(LeaveType).filter(
             LeaveBalance.employee_id == leave_req.employee_id,
             LeaveBalance.calendar_year == leave_req.applied_on.year,
             LeaveType.leave_name.ilike("%Annual%")
         ).first()
         
-        if balance and leave_req.sick_leave_days > 0:
+        if sick_bal and leave_req.sick_leave_days is not None and leave_req.sick_leave_days > 0:
             if leave_req.status == "Pending" or leave_req.status == "Awaiting HR":
-                balance.pending -= Decimal(str(leave_req.sick_leave_days))
-                balance.available += Decimal(str(leave_req.sick_leave_days))
+                sick_bal.pending -= Decimal(str(leave_req.sick_leave_days))
+                sick_bal.available += Decimal(str(leave_req.sick_leave_days))
             elif leave_req.status == "Approved":
-                balance.used -= Decimal(str(leave_req.sick_leave_days))
-                balance.available += Decimal(str(leave_req.sick_leave_days))
+                sick_bal.used -= Decimal(str(leave_req.sick_leave_days))
+                sick_bal.available += Decimal(str(leave_req.sick_leave_days))
         
-        if annual_balance and leave_req.annual_leave_days > 0:
+        if annual_balance and leave_req.annual_leave_days is not None and leave_req.annual_leave_days > 0:
             if leave_req.status == "Pending" or leave_req.status == "Awaiting HR":
                 annual_balance.pending -= Decimal(str(leave_req.annual_leave_days))
                 annual_balance.available += Decimal(str(leave_req.annual_leave_days))

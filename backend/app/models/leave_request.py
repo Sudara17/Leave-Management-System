@@ -15,6 +15,7 @@ class LeaveRequest(Base):
     days: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
     sick_leave_days: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     annual_leave_days: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
+    lwp_days: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     
     half_day: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     half_day_session: Mapped[str | None] = mapped_column(String(50), nullable=True) # Morning, Afternoon

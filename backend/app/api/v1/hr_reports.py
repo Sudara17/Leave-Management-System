@@ -111,7 +111,7 @@ def export_dashboard_report(
     writer.writerow([])
     
     # Department summary
-    writer.writerow(["Department", "Total Eligible Leave", "Total Used Leave", "Total Available Leave", "Total Pending"])
+    writer.writerow(["Department", "Total Eligible Leave", "Total Used Leave", "Total Available Leave", "Total Pending", "Total LWP Days Used"])
     departments = db.query(Department).all()
     for dept in departments:
         emp_ids = [e.id for e in dept.employees]
@@ -121,12 +121,19 @@ def export_dashboard_report(
             LeaveBalance.employee_id.in_(emp_ids),
             LeaveBalance.calendar_year == current_year
         ).all()
+        lwp_used = db.query(func.sum(LeaveRequest.lwp_days)).filter(
+            LeaveRequest.employee_id.in_(emp_ids),
+            LeaveRequest.status == "Approved",
+            func.extract('year', LeaveRequest.start_date) == current_year
+        ).scalar() or 0.0
+        
         writer.writerow([
             dept.department_name,
             sum([b.eligible for b in balances]),
             sum([b.used for b in balances]),
             sum([b.available for b in balances]),
-            sum([b.pending for b in balances])
+            sum([b.pending for b in balances]),
+            lwp_used
         ])
     
     output.seek(0)
@@ -161,12 +168,18 @@ def export_advanced_report(
             LeaveBalance.employee_id.in_(emp_ids),
             LeaveBalance.calendar_year == current_year
         ).all()
+        lwp_used = db.query(func.sum(LeaveRequest.lwp_days)).filter(
+            LeaveRequest.employee_id.in_(emp_ids),
+            LeaveRequest.status == "Approved",
+            func.extract('year', LeaveRequest.start_date) == current_year
+        ).scalar() or 0.0
         dept_data.append({
             "name": dept.department_name,
             "eligible": sum([b.eligible for b in balances]),
             "used": sum([b.used for b in balances]),
             "available": sum([b.available for b in balances]),
-            "pending": sum([b.pending for b in balances])
+            "pending": sum([b.pending for b in balances]),
+            "lwp_used": lwp_used
         })
         
     if format == "csv":
@@ -179,9 +192,9 @@ def export_advanced_report(
         writer.writerow(["Employees On Leave", on_leave])
         writer.writerow(["Pending HR Approvals", pending_approvals])
         writer.writerow([])
-        writer.writerow(["Department", "Eligible", "Used", "Available", "Pending"])
+        writer.writerow(["Department", "Eligible", "Used", "Available", "Pending", "LWP Used"])
         for d in dept_data:
-            writer.writerow([d["name"], d["eligible"], d["used"], d["available"], d["pending"]])
+            writer.writerow([d["name"], d["eligible"], d["used"], d["available"], d["pending"], d["lwp_used"]])
         
         output.seek(0)
         return StreamingResponse(
@@ -212,12 +225,12 @@ def export_advanced_report(
         ws.append(["Pending HR Approvals", pending_approvals])
         ws.append([])
         
-        ws.append(["Department", "Eligible", "Used", "Available", "Pending"])
+        ws.append(["Department", "Eligible", "Used", "Available", "Pending", "LWP Used"])
         for cell in ws[9]:
             cell.font = Font(bold=True)
             
         for d in dept_data:
-            ws.append([d["name"], d["eligible"], d["used"], d["available"], d["pending"]])
+            ws.append([d["name"], d["eligible"], d["used"], d["available"], d["pending"], d["lwp_used"]])
             
         with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
             wb.save(tmp.name)
@@ -257,19 +270,21 @@ def export_advanced_report(
         pdf.set_font("Arial", size=12, style='B')
         pdf.cell(100, 10, txt="Department Breakdown", ln=True)
         pdf.set_font("Arial", size=10, style='B')
-        pdf.cell(50, 10, txt="Department", border=1)
+        pdf.cell(40, 10, txt="Department", border=1)
         pdf.cell(30, 10, txt="Eligible", border=1)
         pdf.cell(30, 10, txt="Used", border=1)
         pdf.cell(30, 10, txt="Available", border=1)
-        pdf.cell(30, 10, txt="Pending", border=1, ln=True)
+        pdf.cell(30, 10, txt="Pending", border=1)
+        pdf.cell(30, 10, txt="LWP", border=1, ln=True)
         
         pdf.set_font("Arial", size=10)
         for d in dept_data:
-            pdf.cell(50, 10, txt=str(d["name"]), border=1)
+            pdf.cell(40, 10, txt=str(d["name"]), border=1)
             pdf.cell(30, 10, txt=str(d["eligible"]), border=1)
             pdf.cell(30, 10, txt=str(d["used"]), border=1)
             pdf.cell(30, 10, txt=str(d["available"]), border=1)
-            pdf.cell(30, 10, txt=str(d["pending"]), border=1, ln=True)
+            pdf.cell(30, 10, txt=str(d["pending"]), border=1)
+            pdf.cell(30, 10, txt=str(d["lwp_used"]), border=1, ln=True)
             
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
             pdf.output(tmp.name)

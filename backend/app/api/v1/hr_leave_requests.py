@@ -144,32 +144,30 @@ def approve_escalated_leave(
     ).first()
     
     try:
-        if leave_req.sick_leave_days is not None:
-            print(f"[DEBUG - HR APPROVE SPLIT] Executing split leave block. Days={leave_req.days}, Sick={leave_req.sick_leave_days}, Annual={leave_req.annual_leave_days}")
-            if balance and leave_req.sick_leave_days > 0:
-                print(f"[DEBUG - HR APPROVE SPLIT] Before Sick - Pending={balance.pending}, Used={balance.used}")
-                balance.pending = max(Decimal('0'), balance.pending - Decimal(str(leave_req.sick_leave_days)))
-                balance.used += Decimal(str(leave_req.sick_leave_days))
-                print(f"[DEBUG - HR APPROVE SPLIT] After Sick - Pending={balance.pending}, Used={balance.used}")
+        if leave_req.sick_leave_days is not None or leave_req.annual_leave_days is not None or leave_req.lwp_days is not None:
+            sick_bal = db.query(LeaveBalance).join(LeaveType).filter(
+                LeaveBalance.employee_id == leave_req.employee_id,
+                LeaveBalance.calendar_year == leave_req.applied_on.year,
+                LeaveType.leave_name.ilike("%Sick%")
+            ).first()
+            
+            annual_balance = db.query(LeaveBalance).join(LeaveType).filter(
+                LeaveBalance.employee_id == leave_req.employee_id,
+                LeaveBalance.calendar_year == leave_req.applied_on.year,
+                LeaveType.leave_name.ilike("%Annual%")
+            ).first()
+            
+            if sick_bal and leave_req.sick_leave_days is not None and leave_req.sick_leave_days > 0:
+                sick_bal.pending = max(Decimal('0'), sick_bal.pending - Decimal(str(leave_req.sick_leave_days)))
+                sick_bal.used += Decimal(str(leave_req.sick_leave_days))
                 
-            if leave_req.annual_leave_days is not None and leave_req.annual_leave_days > 0:
-                annual_balance = db.query(LeaveBalance).join(LeaveType).filter(
-                    LeaveBalance.employee_id == leave_req.employee_id,
-                    LeaveBalance.calendar_year == leave_req.applied_on.year,
-                    LeaveType.leave_name.ilike("%Annual%")
-                ).first()
-                if annual_balance:
-                    print(f"[DEBUG - HR APPROVE SPLIT] Before Annual - Pending={annual_balance.pending}, Used={annual_balance.used}")
-                    annual_balance.pending = max(Decimal('0'), annual_balance.pending - Decimal(str(leave_req.annual_leave_days)))
-                    annual_balance.used += Decimal(str(leave_req.annual_leave_days))
-                    print(f"[DEBUG - HR APPROVE SPLIT] After Annual - Pending={annual_balance.pending}, Used={annual_balance.used}")
+            if annual_balance and leave_req.annual_leave_days is not None and leave_req.annual_leave_days > 0:
+                annual_balance.pending = max(Decimal('0'), annual_balance.pending - Decimal(str(leave_req.annual_leave_days)))
+                annual_balance.used += Decimal(str(leave_req.annual_leave_days))
         else:
-            print(f"[DEBUG - HR APPROVE NORMAL] Executing normal block. Days={leave_req.days}")
             if balance:
-                print(f"[DEBUG - HR APPROVE NORMAL] Before Sick - Pending={balance.pending}, Used={balance.used}")
                 balance.pending = max(Decimal('0'), balance.pending - Decimal(str(leave_req.days)))
                 balance.used += Decimal(str(leave_req.days))
-                print(f"[DEBUG - HR APPROVE NORMAL] After Sick - Pending={balance.pending}, Used={balance.used}")
             
         leave_req.status = "Approved"
         leave_req.hr_id = current_user.employee.id if current_user.employee else None
@@ -224,20 +222,26 @@ def reject_escalated_leave(
     ).first()
     
     try:
-        if leave_req.sick_leave_days is not None:
-            if balance and leave_req.sick_leave_days > 0:
-                balance.pending = max(Decimal('0'), balance.pending - Decimal(str(leave_req.sick_leave_days)))
-                balance.available += Decimal(str(leave_req.sick_leave_days))
+        if leave_req.sick_leave_days is not None or leave_req.annual_leave_days is not None or leave_req.lwp_days is not None:
+            sick_bal = db.query(LeaveBalance).join(LeaveType).filter(
+                LeaveBalance.employee_id == leave_req.employee_id,
+                LeaveBalance.calendar_year == leave_req.applied_on.year,
+                LeaveType.leave_name.ilike("%Sick%")
+            ).first()
+            
+            annual_balance = db.query(LeaveBalance).join(LeaveType).filter(
+                LeaveBalance.employee_id == leave_req.employee_id,
+                LeaveBalance.calendar_year == leave_req.applied_on.year,
+                LeaveType.leave_name.ilike("%Annual%")
+            ).first()
+            
+            if sick_bal and leave_req.sick_leave_days is not None and leave_req.sick_leave_days > 0:
+                sick_bal.pending = max(Decimal('0'), sick_bal.pending - Decimal(str(leave_req.sick_leave_days)))
+                sick_bal.available += Decimal(str(leave_req.sick_leave_days))
                 
-            if leave_req.annual_leave_days is not None and leave_req.annual_leave_days > 0:
-                annual_balance = db.query(LeaveBalance).join(LeaveType).filter(
-                    LeaveBalance.employee_id == leave_req.employee_id,
-                    LeaveBalance.calendar_year == leave_req.applied_on.year,
-                    LeaveType.leave_name.ilike("%Annual%")
-                ).first()
-                if annual_balance:
-                    annual_balance.pending = max(Decimal('0'), annual_balance.pending - Decimal(str(leave_req.annual_leave_days)))
-                    annual_balance.available += Decimal(str(leave_req.annual_leave_days))
+            if annual_balance and leave_req.annual_leave_days is not None and leave_req.annual_leave_days > 0:
+                annual_balance.pending = max(Decimal('0'), annual_balance.pending - Decimal(str(leave_req.annual_leave_days)))
+                annual_balance.available += Decimal(str(leave_req.annual_leave_days))
         else:
             if balance:
                 balance.pending = max(Decimal('0'), balance.pending - Decimal(str(leave_req.days)))
