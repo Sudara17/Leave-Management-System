@@ -13,6 +13,8 @@ class LeaveRequest(Base):
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
     
     days: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
+    sick_leave_days: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
+    annual_leave_days: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     
     half_day: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     half_day_session: Mapped[str | None] = mapped_column(String(50), nullable=True) # Morning, Afternoon
@@ -27,6 +29,7 @@ class LeaveRequest(Base):
     
     reference_code: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
     applied_on: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     
     manager_comments: Mapped[str | None] = mapped_column(Text, nullable=True)
     hr_comments: Mapped[str | None] = mapped_column(Text, nullable=True)

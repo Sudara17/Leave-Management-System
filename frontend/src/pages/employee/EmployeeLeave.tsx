@@ -14,6 +14,8 @@ export default function EmployeeLeave() {
   const [calculating, setCalculating] = useState(false);
   const [calculatedDays, setCalculatedDays] = useState<number | null>(null);
   const [balances, setBalances] = useState<any[]>([]);
+  const [splitValidation, setSplitValidation] = useState<{available: number, requested: number} | null>(null);
+  const [useAnnualFallback, setUseAnnualFallback] = useState(false);
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const addToast = useToastStore((state) => state.addToast);
@@ -31,6 +33,8 @@ export default function EmployeeLeave() {
   }, []);
 
   useEffect(() => {
+    setSplitValidation(null);
+    setUseAnnualFallback(false);
     if (formData.start_date && formData.end_date) {
       if (new Date(formData.start_date) > new Date(formData.end_date)) {
         setCalculatedDays(null);
@@ -50,6 +54,11 @@ export default function EmployeeLeave() {
     }
   }, [formData.start_date, formData.end_date, formData.duration]);
 
+  useEffect(() => {
+    setSplitValidation(null);
+    setUseAnnualFallback(false);
+  }, [formData.leave_type_id]);
+
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
@@ -61,14 +70,25 @@ export default function EmployeeLeave() {
         end_date: formData.end_date,
         half_day: formData.duration !== 'full',
         half_day_session: formData.duration !== 'full' ? (formData.duration === 'first_half' ? 'Morning' : 'Afternoon') : null,
-        reason: formData.reason
+        reason: formData.reason,
+        use_annual_leave_fallback: useAnnualFallback
       };
       
       const res = await applyLeave(payload);
       setSubmittedReq(res);
       addToast('Leave request submitted successfully.', 'success');
+      setSplitValidation(null);
+      setUseAnnualFallback(false);
     } catch (error: any) {
-      addToast(error.response?.data?.detail || 'Failed to apply for leave.', 'error');
+      const errDetail = error.response?.data?.detail;
+      if (errDetail && errDetail.error === 'INSUFFICIENT_SICK_LEAVE') {
+        setSplitValidation({
+          available: errDetail.available,
+          requested: errDetail.requested
+        });
+      } else {
+        addToast(errDetail || 'Failed to apply for leave.', 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -110,9 +130,13 @@ export default function EmployeeLeave() {
               <span className="text-sm text-muted-foreground">Reporting Manager</span>
               <span className="text-sm font-medium text-foreground">{submittedReq.manager_name || 'HR Department'}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between border-b border-border pb-2">
               <span className="text-sm text-muted-foreground">Deducted Days</span>
               <span className="text-sm font-medium text-foreground">{submittedReq.days} days</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Submitted At</span>
+              <span className="text-sm font-medium text-foreground">{submittedReq.submitted_at ? new Date(submittedReq.submitted_at).toLocaleString() : 'N/A'}</span>
             </div>
           </div>
 
@@ -220,6 +244,23 @@ export default function EmployeeLeave() {
             </div>
           </div>
 
+          {formData.start_date && formData.end_date && new Date(formData.start_date) > new Date(formData.end_date) && (
+            <div className="rounded-md bg-rose-50 p-3 text-sm text-rose-600 dark:bg-rose-900/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
+              End Date cannot be before Start Date.
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Number of Days <span className="text-rose-500">*</span></label>
+            <input 
+              type="text" 
+              readOnly
+              value={calculating ? 'Calculating...' : (calculatedDays !== null ? `${calculatedDays} Day${calculatedDays !== 1 ? 's' : ''}` : '')}
+              className="w-full rounded-md border border-border bg-muted/50 py-2.5 px-3 text-sm shadow-sm outline-none text-muted-foreground cursor-not-allowed"
+              placeholder="Auto-calculated based on dates..."
+            />
+          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Reason for Leave <span className="text-rose-500">*</span></label>
             <textarea 
@@ -246,6 +287,27 @@ export default function EmployeeLeave() {
             </div>
           </div>
           
+          {splitValidation && (
+            <div className="rounded-md bg-amber-50 p-4 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 space-y-3">
+              <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300">Insufficient Sick Leave Balance</h4>
+              <div className="flex gap-4 text-sm text-amber-700 dark:text-amber-400">
+                <div>Available Sick Leave: <br/><span className="font-medium text-lg">{splitValidation.available} days</span></div>
+                <div>Requested: <br/><span className="font-medium text-lg">{splitValidation.requested} days</span></div>
+              </div>
+              <label className="flex items-start gap-3 cursor-pointer mt-2 pt-2 border-t border-amber-200/50 dark:border-amber-800/50">
+                <input 
+                  type="checkbox" 
+                  checked={useAnnualFallback} 
+                  onChange={(e) => setUseAnnualFallback(e.target.checked)} 
+                  className="mt-1 h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500" 
+                />
+                <span className="text-sm text-amber-800 dark:text-amber-300">
+                  Use available Sick Leave first,<br/>then use Annual Leave for the remaining days.
+                </span>
+              </label>
+            </div>
+          )}
+
           {/* Calculated Preview */}
           {calculating ? (
             <div className="rounded-md bg-muted/50 p-4 border border-border flex items-center justify-center">
@@ -269,7 +331,7 @@ export default function EmployeeLeave() {
             <button type="button" onClick={() => navigate('/employee')} className="rounded-md border border-border bg-background px-5 py-2.5 text-sm font-medium text-foreground shadow-sm hover:bg-muted">
               Cancel
             </button>
-            <button disabled={loading} type="submit" className="flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50">
+            <button disabled={loading || calculating || calculatedDays === 0 || calculatedDays === null || (formData.start_date && formData.end_date && new Date(formData.start_date) > new Date(formData.end_date) ? true : false) || (splitValidation !== null && !useAnnualFallback)} type="submit" className="flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50">
               <Send className="h-4 w-4" /> {loading ? 'Submitting...' : 'Submit Request'}
             </button>
           </div>

@@ -129,7 +129,7 @@ export default function LeaveHistory() {
                   <th className="px-6 py-4 font-medium">Leave Type</th>
                   <th className="px-6 py-4 font-medium">Duration</th>
                   <th className="px-6 py-4 font-medium">Dates</th>
-                  <th className="px-6 py-4 font-medium">Applied On</th>
+                  <th className="px-6 py-4 font-medium">Submitted At</th>
                   <th className="px-6 py-4 font-medium">Status</th>
                   <th className="px-6 py-4 font-medium text-right">Actions</th>
                 </tr>
@@ -141,7 +141,7 @@ export default function LeaveHistory() {
                     <td className="px-6 py-4 font-medium text-foreground">{req.leave_type_name}</td>
                     <td className="px-6 py-4">{req.days} Day(s)</td>
                     <td className="px-6 py-4">{new Date(req.start_date).toLocaleDateString()} - {new Date(req.end_date).toLocaleDateString()}</td>
-                    <td className="px-6 py-4">{new Date(req.applied_on).toLocaleDateString()}</td>
+                    <td className="px-6 py-4">{req.submitted_at ? new Date(req.submitted_at).toLocaleString() : new Date(req.applied_on).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(req.status)}`}>
                         {req.status}
@@ -209,6 +209,22 @@ export default function LeaveHistory() {
                   <p className="text-xs text-muted-foreground mb-1">End Date</p>
                   <p className="font-medium text-foreground">{new Date(selectedRequest.end_date).toLocaleDateString()}</p>
                 </div>
+                <div className="col-span-2">
+                  <p className="text-xs text-muted-foreground mb-1">Submitted At</p>
+                  <p className="font-medium text-foreground">{selectedRequest.submitted_at ? new Date(selectedRequest.submitted_at).toLocaleString() : new Date(selectedRequest.applied_on).toLocaleString()}</p>
+                </div>
+                {selectedRequest.sick_leave_days !== null && selectedRequest.sick_leave_days !== undefined && selectedRequest.annual_leave_days !== null && selectedRequest.annual_leave_days !== undefined && (
+                  <>
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground mb-1">Sick Leave Used</p>
+                      <p className="font-medium text-amber-600 dark:text-amber-400">{selectedRequest.sick_leave_days} Day(s)</p>
+                    </div>
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground mb-1">Annual Leave Used</p>
+                      <p className="font-medium text-blue-600 dark:text-blue-400">{selectedRequest.annual_leave_days} Day(s)</p>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="border-t border-border pt-4">

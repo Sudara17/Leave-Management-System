@@ -14,6 +14,7 @@ from app.models.leave_balance import LeaveBalance
 from app.models.leave_request import LeaveRequest
 from app.models.company_policy import CompanyPolicy
 from app.models.policy_acceptance import PolicyAcceptance
+from app.models.leave_type import LeaveType
 from app.models.audit_log import AuditLog
 from app.api.deps import get_current_active_user
 from app.services.leave_calculator import LeaveCalculator
@@ -147,8 +148,44 @@ def apply_leave(
         LeaveBalance.calendar_year == current_year
     ).first()
     
+    leave_type = db.query(LeaveType).filter(LeaveType.id == request.leave_type_id).first()
+    if not leave_type:
+        raise HTTPException(status_code=404, detail="Leave type not found.")
+        
+    sick_leave_days_used = None
+    annual_leave_days_used = None
+    annual_balance = None
+    
     if not balance or balance.available < days:
-        raise HTTPException(status_code=400, detail="Insufficient Leave Balance.")
+        if "sick" in leave_type.leave_name.lower():
+            if not request.use_annual_leave_fallback:
+                raise HTTPException(status_code=400, detail={
+                    "error": "INSUFFICIENT_SICK_LEAVE",
+                    "message": "Insufficient Sick Leave Balance.",
+                    "available": float(balance.available) if balance else 0.0,
+                    "requested": float(days)
+                })
+            else:
+                annual_leave_type = db.query(LeaveType).filter(LeaveType.leave_name.ilike("%Annual%")).first()
+                if not annual_leave_type:
+                    raise HTTPException(status_code=400, detail="Annual Leave type not found in the system.")
+                
+                annual_balance = db.query(LeaveBalance).filter(
+                    LeaveBalance.employee_id == employee.id,
+                    LeaveBalance.leave_type_id == annual_leave_type.id,
+                    LeaveBalance.calendar_year == current_year
+                ).first()
+                
+                available_sick = float(balance.available) if balance else 0.0
+                remaining_days = float(days) - available_sick
+                
+                if not annual_balance or float(annual_balance.available) < remaining_days:
+                    raise HTTPException(status_code=400, detail="Insufficient Annual Leave Balance to cover the remaining days.")
+                
+                sick_leave_days_used = available_sick
+                annual_leave_days_used = remaining_days
+        else:
+            raise HTTPException(status_code=400, detail="Insufficient Leave Balance.")
         
     # Create request
     reference_code = f"LV-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}"
@@ -166,13 +203,25 @@ def apply_leave(
             status="Pending" if employee.manager_id else "Awaiting HR",
             manager_id=employee.manager_id,
             reference_code=reference_code,
-            applied_on=datetime.now(timezone.utc)
+            applied_on=datetime.now(timezone.utc),
+            submitted_at=datetime.now(timezone.utc),
+            sick_leave_days=sick_leave_days_used,
+            annual_leave_days=annual_leave_days_used
         )
         db.add(leave_req)
         
         # Block balance (move from available to pending)
-        balance.available -= Decimal(str(days))
-        balance.pending += Decimal(str(days))
+        if sick_leave_days_used is not None and annual_leave_days_used is not None:
+            if balance and sick_leave_days_used > 0:
+                balance.available -= Decimal(str(sick_leave_days_used))
+                balance.pending += Decimal(str(sick_leave_days_used))
+            if annual_balance and annual_leave_days_used > 0:
+                annual_balance.available -= Decimal(str(annual_leave_days_used))
+                annual_balance.pending += Decimal(str(annual_leave_days_used))
+        else:
+            if balance:
+                balance.available -= Decimal(str(days))
+                balance.pending += Decimal(str(days))
         
         # Audit log
         audit_log = AuditLog(
@@ -203,7 +252,10 @@ def apply_leave(
         status=leave_req.status,
         applied_on=leave_req.applied_on,
         reference_code=leave_req.reference_code,
-        manager_name=manager_name
+        manager_name=manager_name,
+        submitted_at=leave_req.submitted_at,
+        sick_leave_days=float(leave_req.sick_leave_days) if leave_req.sick_leave_days is not None else None,
+        annual_leave_days=float(leave_req.annual_leave_days) if leave_req.annual_leave_days is not None else None
     )
 
 @router.post("/leave/{request_id}/withdraw")

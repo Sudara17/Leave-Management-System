@@ -32,6 +32,7 @@ class LeaveApplyRequest(BaseModel):
     half_day: bool = False
     half_day_session: str | None = None
     reason: str
+    use_annual_leave_fallback: bool = False
 
 class LeaveRequestResponse(BaseModel):
     id: int
@@ -51,6 +52,9 @@ class LeaveRequestResponse(BaseModel):
     hr_name: str | None = None
     hr_decision_date: datetime | None = None
     hr_comments: str | None = None
+    submitted_at: datetime | None = None
+    sick_leave_days: float | None = None
+    annual_leave_days: float | None = None
     
     model_config = ConfigDict(from_attributes=True)
 
