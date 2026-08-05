@@ -32,6 +32,7 @@ export default function LeaveApprovals() {
   const [filters, setFilters] = useState({ status: '', department_id: '', leave_type_id: '', start_date: '', end_date: '' });
   const [selectedReq, setSelectedReq] = useState<any | null>(null);
   const [comments, setComments] = useState('');
+  const [commentsError, setCommentsError] = useState('');
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
@@ -70,11 +71,16 @@ export default function LeaveApprovals() {
 
   const handleProcess = async (status: 'Approved' | 'Rejected') => {
     if (!selectedReq) return;
+    if (!comments.trim()) {
+      setCommentsError('HR comments are required.');
+      return;
+    }
+    setCommentsError('');
     setProcessing(true);
     try {
       const { hrApiClient } = await import('../../lib/api/hr');
       const action = status === 'Approved' ? 'approve' : 'reject';
-      await hrApiClient.post(`/hr/leave-requests/${selectedReq.id}/${action}`, { hr_comments: comments || '' });
+      await hrApiClient.post(`/hr/leave-requests/${selectedReq.id}/${action}`, { hr_comments: comments });
       setSelectedReq(null);
       setComments('');
       await fetchRequests();
@@ -426,14 +432,20 @@ export default function LeaveApprovals() {
                 
                 {selectedReq.status === 'Awaiting HR' && (
                   <div>
-                    <h4 className="text-sm font-medium mb-2">HR Comments (Optional)</h4>
+                    <h4 className="text-sm font-medium mb-2">HR Comments (Required)</h4>
                     <textarea 
                       value={comments}
-                      onChange={(e) => setComments(e.target.value)}
-                      className="w-full rounded-md border border-border bg-background p-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground"
+                      onChange={(e) => {
+                        setComments(e.target.value);
+                        if (e.target.value.trim()) setCommentsError('');
+                      }}
+                      className={`w-full rounded-md border ${commentsError ? 'border-rose-500 focus:ring-rose-500' : 'border-border focus:ring-primary'} bg-background p-3 text-sm outline-none focus:border-primary focus:ring-1 text-foreground placeholder:text-muted-foreground`}
                       rows={3}
-                      placeholder="Add any remarks before approving/rejecting..."
+                      placeholder="Add mandatory remarks before approving/rejecting..."
                     />
+                    {commentsError && (
+                      <p className="mt-1 text-xs text-rose-500">{commentsError}</p>
+                    )}
                   </div>
                 )}
               </div>
