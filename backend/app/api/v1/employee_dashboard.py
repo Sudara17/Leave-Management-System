@@ -166,20 +166,19 @@ def apply_leave(
                     "requested": float(days)
                 })
             else:
-                annual_leave_type = db.query(LeaveType).filter(LeaveType.leave_name.ilike("%Annual%")).first()
-                if not annual_leave_type:
-                    raise HTTPException(status_code=400, detail="Annual Leave type not found in the system.")
-                
-                annual_balance = db.query(LeaveBalance).filter(
+                annual_balance = db.query(LeaveBalance).join(LeaveType).filter(
                     LeaveBalance.employee_id == employee.id,
-                    LeaveBalance.leave_type_id == annual_leave_type.id,
-                    LeaveBalance.calendar_year == current_year
+                    LeaveBalance.calendar_year == current_year,
+                    LeaveType.leave_name.ilike("%Annual%")
                 ).first()
+                
+                if not annual_balance:
+                    raise HTTPException(status_code=400, detail="Annual Leave balance not found for this employee.")
                 
                 available_sick = float(balance.available) if balance else 0.0
                 remaining_days = float(days) - available_sick
                 
-                if not annual_balance or float(annual_balance.available) < remaining_days:
+                if float(annual_balance.available) < remaining_days:
                     raise HTTPException(status_code=400, detail="Insufficient Annual Leave Balance to cover the remaining days.")
                 
                 sick_leave_days_used = available_sick
