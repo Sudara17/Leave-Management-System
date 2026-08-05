@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Calendar, FileUp, Send, CheckCircle2, Download } from 'lucide-react';
+import { Calendar, FileUp, Send, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { applyLeave, getLeaveBalances, calculateLeave } from '../../lib/api/employee';
 import { useNavigate } from 'react-router-dom';
-import { generateGoogleCalendarUrl, generateOutlookCalendarUrl, downloadIcs } from '../../lib/calendar';
+
 import { useToastStore } from '../../store/toastStore';
 import { useAuthStore } from '../../store/authStore';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
@@ -145,36 +145,6 @@ export default function EmployeeLeave() {
             </div>
           </div>
 
-          <div className="bg-muted/30 rounded-lg p-4 mb-8 flex flex-col items-center">
-            <p className="text-sm text-muted-foreground mb-3">Add this request to your calendar</p>
-            <div className="flex flex-wrap gap-2 justify-center w-full">
-              <a
-                href={generateGoogleCalendarUrl(submittedReq)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-              >
-                <Calendar className="h-4 w-4 text-blue-600" />
-                Google
-              </a>
-              <a
-                href={generateOutlookCalendarUrl(submittedReq)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-              >
-                <Calendar className="h-4 w-4 text-sky-600" />
-                Outlook
-              </a>
-              <button
-                onClick={() => downloadIcs(submittedReq.id)}
-                className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-              >
-                <Download className="h-4 w-4 text-slate-600" />
-                ICS
-              </button>
-            </div>
-          </div>
 
           <div className="flex flex-col gap-3">
             <button 

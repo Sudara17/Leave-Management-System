@@ -1,10 +1,10 @@
 export function generateGoogleCalendarUrl(event: any) {
-  const start = new Date(event.start_date).toISOString().replace(/-|:|\.\d+/g, '');
+  const start = new Date(event.start_date).toISOString().split('T')[0].replace(/-/g, '');
   
   // For all day events, end date must be the next day
   const endDate = new Date(event.end_date);
   endDate.setDate(endDate.getDate() + 1);
-  const end = endDate.toISOString().replace(/-|:|\.\d+/g, '');
+  const end = endDate.toISOString().split('T')[0].replace(/-/g, '');
   
   const title = encodeURIComponent(`${event.leave_type_name} (${event.status})`);
   const details = encodeURIComponent(
@@ -29,6 +29,3 @@ export function generateOutlookCalendarUrl(event: any) {
   return `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&startdt=${start}&enddt=${end}&subject=${title}&body=${body}&allday=true`;
 }
 
-export function downloadIcs(requestId: number) {
-  window.open(`http://localhost:8000/api/v1/calendar/download-ics/${requestId}`, '_blank');
-}

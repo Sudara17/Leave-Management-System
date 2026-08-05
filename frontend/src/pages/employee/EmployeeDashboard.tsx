@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, ChevronRight, FileText, Download, Bell } from 'lucide-react';
+import { Calendar, Clock, ChevronRight, FileText, Bell } from 'lucide-react';
 import { getDashboardSummary, getLeaveBalances, getLeaveHistory, getEmployeeCalendar, withdrawLeave, getLeaveDetails, getNotifications } from '../../lib/api/employee';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import LeaveCalendar from '../../components/LeaveCalendar';
 import LeaveDetailsDrawer from '../../components/LeaveDetailsDrawer';
-import { generateGoogleCalendarUrl, generateOutlookCalendarUrl, downloadIcs } from '../../lib/calendar';
+import LeaveCalendar from '../../components/LeaveCalendar';
+import CalendarAction from '../../components/common/CalendarAction';
 import { useToastStore } from '../../store/toastStore';
 
 export default function EmployeeDashboard() {
@@ -198,13 +198,7 @@ export default function EmployeeDashboard() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">Actions</p>
-              {currentRequest.status === 'Approved' && (
-                <div className="flex flex-wrap gap-2">
-                  <a title="Google Calendar" href={generateGoogleCalendarUrl(currentRequest)} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-md border border-border hover:bg-muted"><Calendar className="h-4 w-4 text-blue-600" /></a>
-                  <a title="Outlook Calendar" href={generateOutlookCalendarUrl(currentRequest)} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-md border border-border hover:bg-muted"><Calendar className="h-4 w-4 text-sky-600" /></a>
-                  <button title="Download ICS" onClick={() => downloadIcs(currentRequest.id)} className="p-1.5 rounded-md border border-border hover:bg-muted"><Download className="h-4 w-4 text-slate-600" /></button>
-                </div>
-              )}
+              <CalendarAction leave={currentRequest} />
             </div>
           </div>
         </div>
@@ -257,8 +251,9 @@ export default function EmployeeDashboard() {
                       <td className="px-6 py-4 font-medium text-foreground">{req.leave_type_name}</td>
                       <td className="px-6 py-4 text-muted-foreground">{new Date(req.start_date).toLocaleDateString()} - {new Date(req.end_date).toLocaleDateString()}</td>
                       <td className="px-6 py-4 text-muted-foreground">{req.days}</td>
-                      <td className="px-6 py-4">
-                        <button onClick={() => handleSelectReq(req)} className="text-primary hover:underline font-medium">Details</button>
+                      <td className="px-6 py-4 border-t border-border flex items-center gap-2">
+                        <button onClick={() => handleSelectReq(req)} className="text-primary hover:text-primary/80 font-medium whitespace-nowrap">View Details</button>
+                        <CalendarAction leave={req} compact={true} />
                       </td>
                     </tr>
                   ))}

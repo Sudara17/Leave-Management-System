@@ -1,6 +1,5 @@
-
-import { XCircle, Calendar, Download } from 'lucide-react';
-import { generateGoogleCalendarUrl, generateOutlookCalendarUrl, downloadIcs } from '../lib/calendar';
+import { XCircle } from 'lucide-react';
+import CalendarAction from './common/CalendarAction';
 
 interface LeaveDetailsDrawerProps {
   selectedRequest: any;
@@ -97,34 +96,7 @@ export default function LeaveDetailsDrawer({
 
           {showAddToCalendar && selectedRequest.status === 'Approved' && (
             <div className="border-t border-border pt-4">
-              <p className="text-xs text-muted-foreground mb-2">Add to Calendar</p>
-              <div className="flex flex-wrap gap-2">
-                <a
-                  href={generateGoogleCalendarUrl(selectedRequest)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-                >
-                  <Calendar className="h-4 w-4 text-blue-600" />
-                  Google
-                </a>
-                <a
-                  href={generateOutlookCalendarUrl(selectedRequest)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-                >
-                  <Calendar className="h-4 w-4 text-sky-600" />
-                  Outlook
-                </a>
-                <button
-                  onClick={() => downloadIcs(selectedRequest.id)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-                >
-                  <Download className="h-4 w-4 text-slate-600" />
-                  ICS
-                </button>
-              </div>
+              <CalendarAction leave={selectedRequest} />
             </div>
           )}
 
