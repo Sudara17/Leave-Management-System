@@ -32,8 +32,7 @@ class LeaveApplyRequest(BaseModel):
     half_day: bool = False
     half_day_session: str | None = None
     reason: str
-    use_annual_leave_fallback: bool = False
-    use_lwp_fallback: bool = False
+    confirm_leave_split: bool = False
 
 class LeaveRequestResponse(BaseModel):
     id: int
