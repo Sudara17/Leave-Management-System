@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, ChevronRight, FileText, Download } from 'lucide-react';
-import { getDashboardSummary, getLeaveBalances, getLeaveHistory, getEmployeeCalendar, withdrawLeave, getLeaveDetails } from '../../lib/api/employee';
+import { Calendar, Clock, ChevronRight, FileText, Download, Bell } from 'lucide-react';
+import { getDashboardSummary, getLeaveBalances, getLeaveHistory, getEmployeeCalendar, withdrawLeave, getLeaveDetails, getNotifications } from '../../lib/api/employee';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -15,6 +15,7 @@ export default function EmployeeDashboard() {
   const [balances, setBalances] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [reqDetails, setReqDetails] = useState<any | null>(null);
@@ -26,14 +27,16 @@ export default function EmployeeDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [, balData, histData, calData] = await Promise.all([
+      const [, balData, histData, calData, notifData] = await Promise.all([
         getDashboardSummary(),
         getLeaveBalances(),
         getLeaveHistory(),
-        getEmployeeCalendar()
+        getEmployeeCalendar(),
+        getNotifications().catch(() => []) // Gracefully handle if notifications API fails
       ]);
       setBalances(balData);
       setHistory(histData);
+      setNotifications(notifData);
       
       const formattedEvents = calData.map((req: any) => {
         let bgColor = '#f59e0b'; // amber-500 (Pending)
@@ -303,6 +306,32 @@ export default function EmployeeDashboard() {
               );
             }) : (
               <li className="p-6 text-center text-muted-foreground text-sm">No recent history</li>
+            )}
+          </ul>
+        </div>
+      </div>
+
+      {/* Row 6: Notifications */}
+      <div className="rounded-xl border border-border bg-card shadow-sm flex flex-col mt-6">
+        <div className="border-b border-border p-6 bg-muted/30 flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <Bell className="h-5 w-5 text-primary" />
+            Recent Notifications
+          </h3>
+          <button className="text-sm font-medium text-primary hover:text-primary/80">View All</button>
+        </div>
+        <div className="flex-1 p-0">
+          <ul className="divide-y divide-border">
+            {notifications.length > 0 ? notifications.slice(0, 3).map((notif, i) => (
+              <li key={i} className={`p-4 hover:bg-muted/50 transition-colors ${!notif.is_read ? 'bg-primary/5 dark:bg-primary/10' : ''}`}>
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-medium text-foreground">{notif.title}</p>
+                  <p className="text-sm text-muted-foreground">{notif.message}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{new Date(notif.created_at).toLocaleString()}</p>
+                </div>
+              </li>
+            )) : (
+              <li className="p-6 text-center text-muted-foreground text-sm">No new notifications</li>
             )}
           </ul>
         </div>

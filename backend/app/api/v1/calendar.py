@@ -22,7 +22,7 @@ def get_employee_calendar(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    employee = db.query(Employee).filter(Employee.user_id == current_user.id).first()
+    employee = db.query(Employee).filter(Employee.id == current_user.employee_id).first()
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
         
@@ -70,7 +70,7 @@ def get_manager_calendar(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    manager = db.query(Employee).filter(Employee.user_id == current_user.id).first()
+    manager = db.query(Employee).filter(Employee.id == current_user.employee_id).first()
     if not manager:
         raise HTTPException(status_code=404, detail="Manager not found")
         
@@ -153,7 +153,7 @@ def get_hr_calendar(
         response.append({
             "id": req.id,
             "employee_name": f"{emp.first_name} {emp.last_name}" if emp else "Unknown",
-            "department_name": dept.name if dept else None,
+            "department_name": dept.department_name if dept else None,
             "leave_type_name": leave_type.leave_name if leave_type else "Unknown",
             "start_date": req.start_date,
             "end_date": req.end_date,
@@ -215,7 +215,9 @@ def download_ics(request_id: int, db: Session = Depends(get_db)):
     
     # We use start_date and end_date. For all-day events, we just set begin and end dates.
     from datetime import timedelta
-    e.make_all_day(leave_req.start_date, leave_req.end_date + timedelta(days=1))
+    e.begin = leave_req.start_date
+    e.end = leave_req.end_date + timedelta(days=1)
+    e.make_all_day()
     
     e.description = (
         f"Employee: {employee.first_name} {employee.last_name}\n"

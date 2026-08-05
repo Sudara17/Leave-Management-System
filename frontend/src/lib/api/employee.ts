@@ -58,6 +58,11 @@ export const getLeaveDetails = async (requestId: number) => {
   return response.data;
 };
 
+export const getNotifications = async () => {
+  const response = await employeeApiClient.get('/notifications/');
+  return response.data;
+};
+
 
 
 export const getLeaveHistory = async () => {
