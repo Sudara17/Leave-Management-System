@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import List, Optional
+from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -143,9 +144,23 @@ def approve_escalated_leave(
     ).first()
     
     try:
-        if balance:
-            balance.pending -= leave_req.days
-            balance.used += leave_req.days
+        if leave_req.sick_leave_days is not None and leave_req.annual_leave_days is not None:
+            annual_balance = db.query(LeaveBalance).join(LeaveType).filter(
+                LeaveBalance.employee_id == leave_req.employee_id,
+                LeaveBalance.calendar_year == leave_req.applied_on.year,
+                LeaveType.leave_name.ilike("%Annual%")
+            ).first()
+            
+            if balance and leave_req.sick_leave_days > 0:
+                balance.pending -= Decimal(str(leave_req.sick_leave_days))
+                balance.used += Decimal(str(leave_req.sick_leave_days))
+            if annual_balance and leave_req.annual_leave_days > 0:
+                annual_balance.pending -= Decimal(str(leave_req.annual_leave_days))
+                annual_balance.used += Decimal(str(leave_req.annual_leave_days))
+        else:
+            if balance:
+                balance.pending -= Decimal(str(leave_req.days))
+                balance.used += Decimal(str(leave_req.days))
             
         leave_req.status = "Approved"
         leave_req.hr_id = current_user.employee.id if current_user.employee else None
@@ -200,9 +215,23 @@ def reject_escalated_leave(
     ).first()
     
     try:
-        if balance:
-            balance.pending -= leave_req.days
-            balance.available += leave_req.days
+        if leave_req.sick_leave_days is not None and leave_req.annual_leave_days is not None:
+            annual_balance = db.query(LeaveBalance).join(LeaveType).filter(
+                LeaveBalance.employee_id == leave_req.employee_id,
+                LeaveBalance.calendar_year == leave_req.applied_on.year,
+                LeaveType.leave_name.ilike("%Annual%")
+            ).first()
+            
+            if balance and leave_req.sick_leave_days > 0:
+                balance.pending -= Decimal(str(leave_req.sick_leave_days))
+                balance.available += Decimal(str(leave_req.sick_leave_days))
+            if annual_balance and leave_req.annual_leave_days > 0:
+                annual_balance.pending -= Decimal(str(leave_req.annual_leave_days))
+                annual_balance.available += Decimal(str(leave_req.annual_leave_days))
+        else:
+            if balance:
+                balance.pending -= Decimal(str(leave_req.days))
+                balance.available += Decimal(str(leave_req.days))
             
         leave_req.status = "Rejected"
         leave_req.hr_id = current_user.employee.id if current_user.employee else None

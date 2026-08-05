@@ -13,6 +13,7 @@ from app.models.user import User
 from app.models.employee import Employee
 from app.models.leave_balance import LeaveBalance
 from app.models.leave_request import LeaveRequest
+from app.models.leave_type import LeaveType
 from app.models.audit_log import AuditLog
 from app.security.rbac import get_current_manager
 from app.services.leave_calculator import LeaveCalculator
@@ -351,9 +352,23 @@ def approve_leave(
         LeaveBalance.calendar_year == leave_req.applied_on.year
     ).first()
     
-    if balance:
-        balance.pending -= leave_req.days
-        balance.used += leave_req.days
+    if leave_req.sick_leave_days is not None and leave_req.annual_leave_days is not None:
+        annual_balance = db.query(LeaveBalance).join(LeaveType).filter(
+            LeaveBalance.employee_id == leave_req.employee_id,
+            LeaveBalance.calendar_year == leave_req.applied_on.year,
+            LeaveType.leave_name.ilike("%Annual%")
+        ).first()
+        
+        if balance and leave_req.sick_leave_days > 0:
+            balance.pending -= Decimal(str(leave_req.sick_leave_days))
+            balance.used += Decimal(str(leave_req.sick_leave_days))
+        if annual_balance and leave_req.annual_leave_days > 0:
+            annual_balance.pending -= Decimal(str(leave_req.annual_leave_days))
+            annual_balance.used += Decimal(str(leave_req.annual_leave_days))
+    else:
+        if balance:
+            balance.pending -= Decimal(str(leave_req.days))
+            balance.used += Decimal(str(leave_req.days))
         
     leave_req.status = "Approved"
     leave_req.manager_comments = payload.reason_comments
@@ -397,9 +412,23 @@ def reject_leave(
         LeaveBalance.calendar_year == leave_req.applied_on.year
     ).first()
     
-    if balance:
-        balance.pending -= leave_req.days
-        balance.available += leave_req.days
+    if leave_req.sick_leave_days is not None and leave_req.annual_leave_days is not None:
+        annual_balance = db.query(LeaveBalance).join(LeaveType).filter(
+            LeaveBalance.employee_id == leave_req.employee_id,
+            LeaveBalance.calendar_year == leave_req.applied_on.year,
+            LeaveType.leave_name.ilike("%Annual%")
+        ).first()
+        
+        if balance and leave_req.sick_leave_days > 0:
+            balance.pending -= Decimal(str(leave_req.sick_leave_days))
+            balance.available += Decimal(str(leave_req.sick_leave_days))
+        if annual_balance and leave_req.annual_leave_days > 0:
+            annual_balance.pending -= Decimal(str(leave_req.annual_leave_days))
+            annual_balance.available += Decimal(str(leave_req.annual_leave_days))
+    else:
+        if balance:
+            balance.pending -= Decimal(str(leave_req.days))
+            balance.available += Decimal(str(leave_req.days))
         
     leave_req.status = "Rejected"
     leave_req.manager_comments = payload.reason_comments

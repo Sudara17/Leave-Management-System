@@ -286,13 +286,36 @@ def withdraw_leave(
         LeaveBalance.calendar_year == leave_req.applied_on.year
     ).first()
     
-    if balance:
-        if leave_req.status == "Pending":
-            balance.pending -= leave_req.days
-            balance.available += leave_req.days
-        elif leave_req.status == "Approved":
-            balance.used -= leave_req.days
-            balance.available += leave_req.days
+    if leave_req.sick_leave_days is not None and leave_req.annual_leave_days is not None:
+        annual_balance = db.query(LeaveBalance).join(LeaveType).filter(
+            LeaveBalance.employee_id == leave_req.employee_id,
+            LeaveBalance.calendar_year == leave_req.applied_on.year,
+            LeaveType.leave_name.ilike("%Annual%")
+        ).first()
+        
+        if balance and leave_req.sick_leave_days > 0:
+            if leave_req.status == "Pending" or leave_req.status == "Awaiting HR":
+                balance.pending -= Decimal(str(leave_req.sick_leave_days))
+                balance.available += Decimal(str(leave_req.sick_leave_days))
+            elif leave_req.status == "Approved":
+                balance.used -= Decimal(str(leave_req.sick_leave_days))
+                balance.available += Decimal(str(leave_req.sick_leave_days))
+        
+        if annual_balance and leave_req.annual_leave_days > 0:
+            if leave_req.status == "Pending" or leave_req.status == "Awaiting HR":
+                annual_balance.pending -= Decimal(str(leave_req.annual_leave_days))
+                annual_balance.available += Decimal(str(leave_req.annual_leave_days))
+            elif leave_req.status == "Approved":
+                annual_balance.used -= Decimal(str(leave_req.annual_leave_days))
+                annual_balance.available += Decimal(str(leave_req.annual_leave_days))
+    else:
+        if balance:
+            if leave_req.status == "Pending" or leave_req.status == "Awaiting HR":
+                balance.pending -= Decimal(str(leave_req.days))
+                balance.available += Decimal(str(leave_req.days))
+            elif leave_req.status == "Approved":
+                balance.used -= Decimal(str(leave_req.days))
+                balance.available += Decimal(str(leave_req.days))
             
     leave_req.status = "Withdrawn"
     
