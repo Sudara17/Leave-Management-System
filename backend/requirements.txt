@@ -34,3 +34,4 @@ typing_extensions==4.16.0
 uvicorn==0.52.1
 openpyxl
 fpdf2
+ics==0.7.3

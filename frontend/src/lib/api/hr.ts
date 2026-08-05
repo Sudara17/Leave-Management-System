@@ -39,6 +39,11 @@ export const getHRRecentActivity = async () => {
   return response.data;
 };
 
+export const getHrCalendar = async () => {
+  const response = await hrApiClient.get('/calendar/hr');
+  return response.data;
+};
+
 // Employee APIs
 export const getEmployees = async (params?: { search?: string; department_id?: number; role_id?: number; employment_status?: string; skip?: number; limit?: number }) => {
   const response = await hrApiClient.get('/employees/', { params });

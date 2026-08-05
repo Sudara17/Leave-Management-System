@@ -4,7 +4,7 @@ from app.api.v1 import (
     departments, roles, leave_types, employees, invitations, 
     employee_dashboard, manager_dashboard, hr_dashboard,
     hr_leave_requests, hr_policies, hr_audit, hr_reports,
-    hr_eligibility, hr_settings, notifications
+    hr_eligibility, hr_settings, notifications, calendar
 )
 
 api_router = APIRouter()
@@ -24,3 +24,4 @@ api_router.include_router(hr_reports.router, prefix="/hr/reports", tags=["hr-ope
 api_router.include_router(hr_eligibility.router, prefix="/hr/eligibility", tags=["hr-operations"])
 api_router.include_router(hr_settings.router, prefix="/hr/settings", tags=["hr-operations"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+api_router.include_router(calendar.router, prefix="/calendar", tags=["calendar"])

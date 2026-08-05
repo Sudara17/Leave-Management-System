@@ -37,7 +37,14 @@ class LeaveRequest(Base):
     
     submitted_on_behalf: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     submitted_by_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("employees.id"), nullable=True)
-
+    
+    # Calendar Integration
+    google_calendar_event_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    outlook_calendar_event_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    calendar_provider: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    calendar_synced: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    calendar_sync_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ics_generated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     employee = relationship("Employee", foreign_keys=[employee_id])
     leave_type = relationship("LeaveType")
     manager = relationship("Employee", foreign_keys=[manager_id])

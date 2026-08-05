@@ -65,6 +65,11 @@ export const getLeaveHistory = async () => {
   return response.data;
 };
 
+export const getEmployeeCalendar = async () => {
+  const response = await employeeApiClient.get('/calendar/employee');
+  return response.data;
+};
+
 export const getPolicies = async () => {
   const response = await employeeApiClient.get('/employee/policies');
   return response.data;

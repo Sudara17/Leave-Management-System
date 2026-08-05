@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { 
   Users, UserCheck, CalendarClock,
-  Activity, ShieldAlert, FileText, CheckCircle
+  Activity, ShieldAlert, FileText, CheckCircle, Clock, ChevronRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -10,8 +10,11 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { hrApiClient } from '../../lib/api/hr';
+import { hrApiClient, getHrCalendar } from '../../lib/api/hr';
+import { getLeaveDetails } from '../../lib/api/employee';
 import EmployeeFormDrawer from '../../components/hr/EmployeeFormDrawer';
+import LeaveCalendar from '../../components/LeaveCalendar';
+import LeaveDetailsDrawer from '../../components/LeaveDetailsDrawer';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useToastStore } from '../../store/toastStore';
 
@@ -36,9 +39,13 @@ export default function HRDashboard() {
   const [summary, setSummary] = useState<any>(null);
   const [activities, setActivities] = useState<any[]>([]);
   const [chartsData, setChartsData] = useState<any>(null);
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [reqDetails, setReqDetails] = useState<any | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -47,15 +54,33 @@ export default function HRDashboard() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const { hrApiClient } = await import('../../lib/api/hr');
-      const [sumRes, actRes, chartsRes] = await Promise.all([
+      const [sumRes, actRes, chartsRes, calRes] = await Promise.all([
         hrApiClient.get('/hr/dashboard/summary').then(r => r.data),
         hrApiClient.get('/hr/dashboard/recent-activity').then(r => r.data),
-        hrApiClient.get('/hr/dashboard/charts').then(r => r.data)
+        hrApiClient.get('/hr/dashboard/charts').then(r => r.data),
+        getHrCalendar()
       ]);
       setSummary(sumRes);
       setActivities(actRes);
       setChartsData(chartsRes);
+      
+      const formattedEvents = calRes.map((req: any) => {
+        let bgColor = '#f59e0b'; // amber-500
+        if (req.status === 'Approved') bgColor = '#10b981'; // emerald-500
+        else if (req.status === 'Rejected') bgColor = '#f43f5e'; // rose-500
+        else if (req.status === 'Withdrawn') bgColor = '#64748b'; // slate-500
+        
+        return {
+          id: req.id.toString(),
+          title: `${req.employee_name} - ${req.leave_type_name}`,
+          start: req.start_date,
+          end: req.end_date,
+          backgroundColor: bgColor,
+          borderColor: bgColor,
+          extendedProps: req
+        };
+      });
+      setCalendarEvents(formattedEvents);
     } catch (error) {
       console.error("Error fetching dashboard data", error);
     } finally {
@@ -78,6 +103,26 @@ export default function HRDashboard() {
     } catch (error) {
       useToastStore.getState().addToast('Failed to download report', 'error');
     }
+  };
+
+  const handleSelectReq = async (req: any) => {
+    setSelectedRequest(req);
+    setReqDetails(null);
+    setDetailsLoading(true);
+    try {
+      const details = await getLeaveDetails(req.id);
+      setReqDetails(details);
+    } catch (error) {
+      console.error(error);
+      useToastStore.getState().addToast('Failed to load request details', 'error');
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const handleEventClick = (info: any) => {
+    const req = info.event.extendedProps;
+    handleSelectReq(req);
   };
 
   if (loading && !summary) {
@@ -153,6 +198,68 @@ export default function HRDashboard() {
         ))}
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Left Column: Recent Activity */}
+        <div className="lg:col-span-2 rounded-xl border border-border bg-card shadow-sm flex flex-col">
+          <div className="border-b border-border p-6 flex justify-between items-center bg-muted/30">
+            <h3 className="text-lg font-semibold text-foreground">Recent Activity</h3>
+            <button onClick={() => navigate('/hr/audit-logs')} className="text-sm font-medium text-primary hover:text-primary/80">View Logs</button>
+          </div>
+          <div className="flex-1 p-0">
+            {activities.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground text-sm">No recent activity.</div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {activities.map((act, i) => (
+                  <li key={i} className="p-4 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                          <Activity className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{act.action}</p>
+                          <p className="text-xs text-muted-foreground">{act.details}</p>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground text-right">
+                        <div>{new Date(act.timestamp).toLocaleDateString()}</div>
+                        <div>{new Date(act.timestamp).toLocaleTimeString()}</div>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Calendar */}
+        <div className="lg:col-span-1 rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col">
+          <h3 className="text-lg font-semibold text-foreground mb-4">Organization Calendar</h3>
+          
+          <div className="flex-1 min-h-[350px]">
+            <LeaveCalendar 
+              events={calendarEvents} 
+              onEventClick={handleEventClick}
+              height={400}
+              headerToolbar={{
+                left: 'title',
+                right: 'prev,next'
+              }}
+            />
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-border flex flex-wrap gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Approved</div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Pending</div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-slate-500"></div> Other</div>
+          </div>
+        </div>
+        
+      </div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Chart */}
         <div className="lg:col-span-2 rounded-xl border border-border bg-card p-6 shadow-sm text-card-foreground">
@@ -201,90 +308,22 @@ export default function HRDashboard() {
                 </Pie>
                 <RechartsTooltip 
                   contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
+                  itemStyle={{ color: '#fff' }}
                 />
-                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }}/>
+                <Legend verticalAlign="bottom" height={36} iconType="circle" />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Recent Activity */}
-        <div className="rounded-xl border border-border bg-card shadow-sm text-card-foreground overflow-hidden">
-          <div className="border-b border-border p-6">
-            <h3 className="text-lg font-semibold">Recent Audit Logs</h3>
-          </div>
-          <div className="p-0">
-            <ul className="divide-y divide-border max-h-96 overflow-y-auto">
-              {activities.length > 0 ? (
-                activities.slice(0, 10).map((activity: any) => (
-                  <li key={activity.id} className="p-4 hover:bg-muted transition-colors">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                          <Activity className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">
-                          {activity.action.replace(/_/g, ' ')}
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {activity.who} • {activity.role}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(activity.when).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </li>
-                ))
-              ) : (
-                <div className="p-8 text-center text-muted-foreground">No recent activity.</div>
-              )}
-            </ul>
-          </div>
-        </div>
-        
-        {/* Leave Utilization Bar Chart */}
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm text-card-foreground">
-          <h3 className="text-lg font-semibold mb-6">Company Leave Utilization</h3>
-          <div className="flex flex-col justify-center h-80 space-y-8 px-4">
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium text-muted-foreground">Total Leaves Available</span>
-                <span className="text-sm font-medium">{summary.total_company_leave} Days</span>
-              </div>
-              <div className="w-full bg-secondary rounded-full h-2.5">
-                <div className="bg-primary h-2.5 rounded-full" style={{ width: '100%' }}></div>
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium text-muted-foreground">Total Leaves Used</span>
-                <span className="text-sm font-medium">{summary.used_leave} Days</span>
-              </div>
-              <div className="w-full bg-secondary rounded-full h-2.5">
-                <div className="bg-emerald-500 h-2.5 rounded-full" style={{ width: `${(summary.used_leave / (summary.total_company_leave || 1)) * 100}%` }}></div>
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium text-muted-foreground">Remaining Balance</span>
-                <span className="text-sm font-medium">{summary.available_leave} Days</span>
-              </div>
-              <div className="w-full bg-secondary rounded-full h-2.5">
-                <div className="bg-amber-500 h-2.5 rounded-full" style={{ width: `${(summary.available_leave / (summary.total_company_leave || 1)) * 100}%` }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <LeaveDetailsDrawer
+        selectedRequest={selectedRequest}
+        reqDetails={reqDetails}
+        detailsLoading={detailsLoading}
+        onClose={() => setSelectedRequest(null)}
+        showAddToCalendar={false}
+      />
     </div>
   );
 }

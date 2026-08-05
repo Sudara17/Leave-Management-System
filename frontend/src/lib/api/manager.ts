@@ -56,7 +56,12 @@ export const forwardToHR = async (requestId: number, comments: string) => {
 };
 
 // Apply on Behalf
-export const applyOnBehalf = async (payload: any) => {
-  const response = await api.post('/manager/apply-on-behalf', payload);
+export const applyOnBehalf = async (data: any) => {
+  const response = await managerApiClient.post('/manager/leave-requests/apply-on-behalf', data);
+  return response.data;
+};
+
+export const getManagerCalendar = async () => {
+  const response = await managerApiClient.get('/calendar/manager');
   return response.data;
 };
