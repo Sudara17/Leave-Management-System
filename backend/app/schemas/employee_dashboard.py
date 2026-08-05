@@ -57,7 +57,6 @@ class LeaveRequestResponse(BaseModel):
     annual_leave_days: float | None = None
     lwp_days: float | None = None
     calendar_synced: bool = False
-    ics_generated: bool = False
     google_calendar_event_id: str | None = None
     outlook_calendar_event_id: str | None = None
     

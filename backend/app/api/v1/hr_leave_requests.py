@@ -61,9 +61,9 @@ def get_all_leave_requests(
     
     result = []
     for req in requests:
-        manager_name = f"{req.manager.first_name} {req.manager.last_name}" if req.manager else "None"
-        employee_name = f"{req.employee.first_name} {req.employee.last_name}"
-        hr_name = f"{req.hr.first_name} {req.hr.last_name}" if req.hr else None
+        manager_name = f"{req.manager.first_name or ''} {req.manager.last_name or ''}".strip() if req.manager else "None"
+        employee_name = f"{req.employee.first_name or ''} {req.employee.last_name or ''}".strip()
+        hr_name = f"{req.hr.first_name or ''} {req.hr.last_name or ''}".strip() if req.hr else None
         
         result.append(LeaveRequestResponse(
             id=req.id,
@@ -97,9 +97,9 @@ def get_escalated_requests(
     
     result = []
     for req in requests:
-        manager_name = f"{req.manager.first_name} {req.manager.last_name}" if req.manager else "None"
-        employee_name = f"{req.employee.first_name} {req.employee.last_name}"
-        hr_name = f"{req.hr.first_name} {req.hr.last_name}" if req.hr else None
+        manager_name = f"{req.manager.first_name or ''} {req.manager.last_name or ''}".strip() if req.manager else "None"
+        employee_name = f"{req.employee.first_name or ''} {req.employee.last_name or ''}".strip()
+        hr_name = f"{req.hr.first_name or ''} {req.hr.last_name or ''}".strip() if req.hr else None
         
         result.append(LeaveRequestResponse(
             id=req.id,

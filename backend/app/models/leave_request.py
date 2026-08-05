@@ -44,7 +44,6 @@ class LeaveRequest(Base):
     calendar_provider: Mapped[str | None] = mapped_column(String(50), nullable=True)
     calendar_synced: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     calendar_sync_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    ics_generated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     employee = relationship("Employee", foreign_keys=[employee_id])
     leave_type = relationship("LeaveType")
     manager = relationship("Employee", foreign_keys=[manager_id])

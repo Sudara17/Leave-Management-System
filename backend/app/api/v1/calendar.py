@@ -42,7 +42,7 @@ def get_employee_calendar(
         
         response.append({
             "id": req.id,
-            "employee_name": f"{employee.first_name} {employee.last_name}",
+            "employee_name": f"{employee.first_name or ''} {employee.last_name or ''}".strip(),
             "leave_type_name": leave_type.leave_name if leave_type else "Unknown",
             "start_date": req.start_date,
             "end_date": req.end_date,
@@ -50,14 +50,13 @@ def get_employee_calendar(
             "status": req.status,
             "applied_on": req.applied_on,
             "reference_code": req.reference_code,
-            "manager_name": f"{manager.first_name} {manager.last_name}" if manager else None,
+            "manager_name": f"{manager.first_name or ''} {manager.last_name or ''}".strip() if manager else None,
             "reason": req.reason,
             "submitted_at": req.submitted_at,
             "sick_leave_days": float(req.sick_leave_days) if req.sick_leave_days else 0,
             "annual_leave_days": float(req.annual_leave_days) if req.annual_leave_days else 0,
             "lwp_days": float(req.lwp_days) if req.lwp_days else 0,
             "calendar_synced": req.calendar_synced,
-            "ics_generated": req.ics_generated,
             "google_calendar_event_id": req.google_calendar_event_id,
             "outlook_calendar_event_id": req.outlook_calendar_event_id
         })
@@ -91,7 +90,7 @@ def get_manager_calendar(
         
         response.append({
             "id": req.id,
-            "employee_name": f"{emp.first_name} {emp.last_name}" if emp else "Unknown",
+            "employee_name": f"{emp.first_name or ''} {emp.last_name or ''}".strip() if emp else "Unknown",
             "leave_type_name": leave_type.leave_name if leave_type else "Unknown",
             "start_date": req.start_date,
             "end_date": req.end_date,
@@ -99,14 +98,13 @@ def get_manager_calendar(
             "status": req.status,
             "applied_on": req.applied_on,
             "reference_code": req.reference_code,
-            "manager_name": f"{manager.first_name} {manager.last_name}",
+            "manager_name": f"{manager.first_name or ''} {manager.last_name or ''}".strip(),
             "reason": req.reason,
             "submitted_at": req.submitted_at,
             "sick_leave_days": float(req.sick_leave_days) if req.sick_leave_days else 0,
             "annual_leave_days": float(req.annual_leave_days) if req.annual_leave_days else 0,
             "lwp_days": float(req.lwp_days) if req.lwp_days else 0,
             "calendar_synced": req.calendar_synced,
-            "ics_generated": req.ics_generated,
             "google_calendar_event_id": req.google_calendar_event_id,
             "outlook_calendar_event_id": req.outlook_calendar_event_id
         })
@@ -152,7 +150,7 @@ def get_hr_calendar(
         
         response.append({
             "id": req.id,
-            "employee_name": f"{emp.first_name} {emp.last_name}" if emp else "Unknown",
+            "employee_name": f"{emp.first_name or ''} {emp.last_name or ''}".strip() if emp else "Unknown",
             "department_name": dept.department_name if dept else None,
             "leave_type_name": leave_type.leave_name if leave_type else "Unknown",
             "start_date": req.start_date,
@@ -161,14 +159,13 @@ def get_hr_calendar(
             "status": req.status,
             "applied_on": req.applied_on,
             "reference_code": req.reference_code,
-            "manager_name": f"{mgr.first_name} {mgr.last_name}" if mgr else None,
+            "manager_name": f"{mgr.first_name or ''} {mgr.last_name or ''}".strip() if mgr else None,
             "reason": req.reason,
             "submitted_at": req.submitted_at,
             "sick_leave_days": float(req.sick_leave_days) if req.sick_leave_days else 0,
             "annual_leave_days": float(req.annual_leave_days) if req.annual_leave_days else 0,
             "lwp_days": float(req.lwp_days) if req.lwp_days else 0,
             "calendar_synced": req.calendar_synced,
-            "ics_generated": req.ics_generated,
             "google_calendar_event_id": req.google_calendar_event_id,
             "outlook_calendar_event_id": req.outlook_calendar_event_id
         })

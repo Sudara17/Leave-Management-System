@@ -147,7 +147,7 @@ def get_approval_queue(
     for req in requests:
         result.append(LeaveRequestResponse(
             id=req.id,
-            employee_name=f"{req.employee.first_name} {req.employee.last_name}",
+            employee_name=f"{req.employee.first_name or ''} {req.employee.last_name or ''}".strip(),
             department_name=req.employee.department.department_name if req.employee.department else "None",
             reason=req.reason,
             leave_type_name=req.leave_type.leave_name,
@@ -157,7 +157,7 @@ def get_approval_queue(
             status=req.status,
             applied_on=req.applied_on,
             reference_code=req.reference_code,
-            manager_name=f"{manager.first_name} {manager.last_name}",
+            manager_name=f"{manager.first_name or ''} {manager.last_name or ''}".strip(),
             manager_comments=req.manager_comments,
             hr_comments=req.hr_comments
         ))
@@ -182,7 +182,7 @@ def get_upcoming_leaves(
     for req in requests:
         result.append(LeaveRequestResponse(
             id=req.id,
-            employee_name=f"{req.employee.first_name} {req.employee.last_name}",
+            employee_name=f"{req.employee.first_name or ''} {req.employee.last_name or ''}".strip(),
             department_name=req.employee.department.department_name if req.employee.department else "None",
             reason=req.reason,
             leave_type_name=req.leave_type.leave_name,
@@ -192,7 +192,7 @@ def get_upcoming_leaves(
             status=req.status,
             applied_on=req.applied_on,
             reference_code=req.reference_code,
-            manager_name=f"{manager.first_name} {manager.last_name}",
+            manager_name=f"{manager.first_name or ''} {manager.last_name or ''}".strip(),
             manager_comments=req.manager_comments,
             hr_comments=req.hr_comments
         ))
@@ -227,10 +227,10 @@ def get_manager_leave_calendar(
         
         lines.extend([
             "BEGIN:VEVENT",
-            f"SUMMARY:{req.employee.first_name} {req.employee.last_name} - {req.leave_type.leave_name}",
+            f"SUMMARY:{req.employee.first_name or ''} {req.employee.last_name or ''} - {req.leave_type.leave_name}",
             f"DTSTART;VALUE=DATE:{start_date}",
             f"DTEND;VALUE=DATE:{end_date}",
-            f"DESCRIPTION:Employee: {req.employee.first_name} {req.employee.last_name}\\nLeave Type: {req.leave_type.leave_name}\\nReference: {req.reference_code}\\nReason: {req.reason}\\nStatus: {req.status}",
+            f"DESCRIPTION:Employee: {req.employee.first_name or ''} {req.employee.last_name or ''}\\nLeave Type: {req.leave_type.leave_name}\\nReference: {req.reference_code}\\nReason: {req.reason}\\nStatus: {req.status}",
             "LOCATION:Out of Office",
             "ORGANIZER;CN=\"Manager\":mailto:manager@example.com",
             "STATUS:CONFIRMED",
@@ -290,7 +290,7 @@ def get_leave_details(
     return {
         "request": {
             "id": leave_req.id,
-            "employee_name": f"{leave_req.employee.first_name} {leave_req.employee.last_name}",
+            "employee_name": f"{leave_req.employee.first_name or ''} {leave_req.employee.last_name or ''}".strip(),
             "department_name": leave_req.employee.department.department_name if leave_req.employee.department else "None",
             "leave_type_name": leave_req.leave_type.leave_name,
             "start_date": leave_req.start_date.isoformat(),
@@ -567,5 +567,5 @@ def apply_on_behalf(
         status=leave_req.status,
         applied_on=leave_req.applied_on,
         reference_code=leave_req.reference_code,
-        manager_name=f"{manager.first_name} {manager.last_name}"
+        manager_name=f"{manager.first_name or ''} {manager.last_name or ''}".strip()
     )
