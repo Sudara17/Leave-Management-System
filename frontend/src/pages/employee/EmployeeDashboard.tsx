@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, ChevronRight, FileText, CheckCircle2, Download } from 'lucide-react';
+import { Calendar, Clock, ChevronRight, FileText, Download } from 'lucide-react';
 import { getDashboardSummary, getLeaveBalances, getLeaveHistory, getEmployeeCalendar, withdrawLeave, getLeaveDetails } from '../../lib/api/employee';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useNavigate } from 'react-router-dom';

@@ -6,7 +6,7 @@ import {
 import { motion } from 'framer-motion';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { getManagerDashboardSummary, getApprovalQueue, getUpcomingLeaves, getManagerCalendar } from '../../lib/api/manager';
-import { getLeaveDetails, approveLeave, rejectLeave, forwardToHR } from '../../lib/api/manager';
+import { getLeaveDetails } from '../../lib/api/manager';
 import { useNavigate } from 'react-router-dom';
 import LeaveCalendar from '../../components/LeaveCalendar';
 import LeaveDetailsDrawer from '../../components/LeaveDetailsDrawer';

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { 
   Users, UserCheck, CalendarClock,
-  Activity, ShieldAlert, FileText, CheckCircle, Clock, ChevronRight
+  Activity, ShieldAlert, FileText, CheckCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';

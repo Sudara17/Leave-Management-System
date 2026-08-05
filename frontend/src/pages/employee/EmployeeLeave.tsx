@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, FileUp, Send, CheckCircle2 } from 'lucide-react';
+import { Calendar, FileUp, Send, CheckCircle2, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { applyLeave, getLeaveBalances, calculateLeave } from '../../lib/api/employee';
 import { useNavigate } from 'react-router-dom';

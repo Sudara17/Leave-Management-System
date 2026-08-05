@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { XCircle, Calendar, Download } from 'lucide-react';
 import { generateGoogleCalendarUrl, generateOutlookCalendarUrl, downloadIcs } from '../lib/calendar';
 
