@@ -213,16 +213,26 @@ export default function LeaveHistory() {
                   <p className="text-xs text-muted-foreground mb-1">Submitted At</p>
                   <p className="font-medium text-foreground">{selectedRequest.submitted_at ? new Date(selectedRequest.submitted_at).toLocaleString() : new Date(selectedRequest.applied_on).toLocaleString()}</p>
                 </div>
-                {selectedRequest.sick_leave_days !== null && selectedRequest.sick_leave_days !== undefined && selectedRequest.annual_leave_days !== null && selectedRequest.annual_leave_days !== undefined && (
+                {(selectedRequest.sick_leave_days !== null || selectedRequest.annual_leave_days !== null || selectedRequest.lwp_days !== null) && (
                   <>
-                    <div className="mt-2">
-                      <p className="text-xs text-muted-foreground mb-1">Sick Leave Used</p>
-                      <p className="font-medium text-amber-600 dark:text-amber-400">{selectedRequest.sick_leave_days} Day(s)</p>
-                    </div>
-                    <div className="mt-2">
-                      <p className="text-xs text-muted-foreground mb-1">Annual Leave Used</p>
-                      <p className="font-medium text-blue-600 dark:text-blue-400">{selectedRequest.annual_leave_days} Day(s)</p>
-                    </div>
+                    {selectedRequest.sick_leave_days !== null && selectedRequest.sick_leave_days > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs text-muted-foreground mb-1">Sick Leave Used</p>
+                        <p className="font-medium text-amber-600 dark:text-amber-400">{selectedRequest.sick_leave_days} Day(s)</p>
+                      </div>
+                    )}
+                    {selectedRequest.annual_leave_days !== null && selectedRequest.annual_leave_days > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs text-muted-foreground mb-1">Annual Leave Used</p>
+                        <p className="font-medium text-blue-600 dark:text-blue-400">{selectedRequest.annual_leave_days} Day(s)</p>
+                      </div>
+                    )}
+                    {selectedRequest.lwp_days !== null && selectedRequest.lwp_days > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs text-muted-foreground mb-1">Leave Without Pay (LWP)</p>
+                        <p className="font-medium text-purple-600 dark:text-purple-400">{selectedRequest.lwp_days} Day(s)</p>
+                      </div>
+                    )}
                   </>
                 )}
               </div>

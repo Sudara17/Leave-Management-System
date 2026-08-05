@@ -14,8 +14,8 @@ export default function EmployeeLeave() {
   const [calculating, setCalculating] = useState(false);
   const [calculatedDays, setCalculatedDays] = useState<number | null>(null);
   const [balances, setBalances] = useState<any[]>([]);
-  const [splitValidation, setSplitValidation] = useState<{available: number, requested: number} | null>(null);
-  const [useAnnualFallback, setUseAnnualFallback] = useState(false);
+  const [splitValidation, setSplitValidation] = useState<{available_sick: number, available_annual: number, requested_days: number, remaining_days: number, lwp_required: boolean, message: string} | null>(null);
+  const [confirmLeaveSplit, setConfirmLeaveSplit] = useState(false);
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const addToast = useToastStore((state) => state.addToast);
@@ -34,7 +34,7 @@ export default function EmployeeLeave() {
 
   useEffect(() => {
     setSplitValidation(null);
-    setUseAnnualFallback(false);
+    setConfirmLeaveSplit(false);
     if (formData.start_date && formData.end_date) {
       if (new Date(formData.start_date) > new Date(formData.end_date)) {
         setCalculatedDays(null);
@@ -56,7 +56,7 @@ export default function EmployeeLeave() {
 
   useEffect(() => {
     setSplitValidation(null);
-    setUseAnnualFallback(false);
+    setConfirmLeaveSplit(false);
   }, [formData.leave_type_id]);
 
   const handleSubmit = async (e: any) => {
@@ -71,23 +71,27 @@ export default function EmployeeLeave() {
         half_day: formData.duration !== 'full',
         half_day_session: formData.duration !== 'full' ? (formData.duration === 'first_half' ? 'Morning' : 'Afternoon') : null,
         reason: formData.reason,
-        use_annual_leave_fallback: useAnnualFallback
+        confirm_leave_split: confirmLeaveSplit
       };
       
       const res = await applyLeave(payload);
       setSubmittedReq(res);
       addToast('Leave request submitted successfully.', 'success');
       setSplitValidation(null);
-      setUseAnnualFallback(false);
+      setConfirmLeaveSplit(false);
     } catch (error: any) {
       const errDetail = error.response?.data?.detail;
-      if (errDetail && errDetail.error === 'INSUFFICIENT_SICK_LEAVE') {
+      if (errDetail && errDetail.error === 'INSUFFICIENT_LEAVE_BALANCE') {
         setSplitValidation({
-          available: errDetail.available,
-          requested: errDetail.requested
+          available_sick: errDetail.available_sick,
+          available_annual: errDetail.available_annual,
+          requested_days: errDetail.requested_days,
+          remaining_days: errDetail.remaining_days,
+          lwp_required: errDetail.lwp_required,
+          message: errDetail.message
         });
       } else {
-        addToast(errDetail || 'Failed to apply for leave.', 'error');
+        addToast(typeof errDetail === 'string' ? errDetail : 'Failed to apply for leave.', 'error');
       }
     } finally {
       setLoading(false);
@@ -289,20 +293,35 @@ export default function EmployeeLeave() {
           
           {splitValidation && (
             <div className="rounded-md bg-amber-50 p-4 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 space-y-3">
-              <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300">Insufficient Sick Leave Balance</h4>
-              <div className="flex gap-4 text-sm text-amber-700 dark:text-amber-400">
-                <div>Available Sick Leave: <br/><span className="font-medium text-lg">{splitValidation.available} days</span></div>
-                <div>Requested: <br/><span className="font-medium text-lg">{splitValidation.requested} days</span></div>
+              <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300">{splitValidation.message}</h4>
+              <div className="flex flex-wrap gap-4 text-sm text-amber-700 dark:text-amber-400">
+                {splitValidation.available_sick > 0 && (
+                  <div>Available Sick: <br/><span className="font-medium text-lg">{splitValidation.available_sick} days</span></div>
+                )}
+                {splitValidation.available_annual >= 0 && splitValidation.available_sick > 0 && (
+                  <div>Available Annual: <br/><span className="font-medium text-lg">{splitValidation.available_annual} days</span></div>
+                )}
+                {splitValidation.available_annual > 0 && splitValidation.available_sick === 0 && (
+                  <div>Available Annual: <br/><span className="font-medium text-lg">{splitValidation.available_annual} days</span></div>
+                )}
+                <div>Requested: <br/><span className="font-medium text-lg">{splitValidation.requested_days} days</span></div>
+                {splitValidation.remaining_days > 0 && (
+                  <div>Remaining (LWP): <br/><span className="font-medium text-lg">{splitValidation.remaining_days} days</span></div>
+                )}
               </div>
               <label className="flex items-start gap-3 cursor-pointer mt-2 pt-2 border-t border-amber-200/50 dark:border-amber-800/50">
                 <input 
                   type="checkbox" 
-                  checked={useAnnualFallback} 
-                  onChange={(e) => setUseAnnualFallback(e.target.checked)} 
+                  checked={confirmLeaveSplit} 
+                  onChange={(e) => setConfirmLeaveSplit(e.target.checked)} 
                   className="mt-1 h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500" 
                 />
                 <span className="text-sm text-amber-800 dark:text-amber-300">
-                  Use available Sick Leave first,<br/>then use Annual Leave for the remaining days.
+                  {splitValidation.lwp_required 
+                    ? (splitValidation.available_sick > 0 
+                        ? "Use available Sick Leave first, then use Annual Leave, then use Leave Without Pay (LWP) for the remaining days." 
+                        : "Use available Annual Leave, then use Leave Without Pay (LWP) for the remaining days.")
+                    : "Use available Sick Leave first, then use Annual Leave for the remaining days."}
                 </span>
               </label>
             </div>
@@ -331,7 +350,7 @@ export default function EmployeeLeave() {
             <button type="button" onClick={() => navigate('/employee')} className="rounded-md border border-border bg-background px-5 py-2.5 text-sm font-medium text-foreground shadow-sm hover:bg-muted">
               Cancel
             </button>
-            <button disabled={loading || calculating || calculatedDays === 0 || calculatedDays === null || (formData.start_date && formData.end_date && new Date(formData.start_date) > new Date(formData.end_date) ? true : false) || (splitValidation !== null && !useAnnualFallback)} type="submit" className="flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50">
+            <button disabled={loading || calculating || calculatedDays === 0 || calculatedDays === null || (formData.start_date && formData.end_date && new Date(formData.start_date) > new Date(formData.end_date) ? true : false) || (splitValidation !== null && !confirmLeaveSplit)} type="submit" className="flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50">
               <Send className="h-4 w-4" /> {loading ? 'Submitting...' : 'Submit Request'}
             </button>
           </div>

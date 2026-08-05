@@ -347,6 +347,29 @@ export default function LeaveApprovals() {
                       <dd className="font-medium text-foreground">{new Date(selectedReq.applied_on).toLocaleDateString()}</dd>
                     </div>
                   </dl>
+                  
+                  {(selectedReq.sick_leave_days !== null || selectedReq.annual_leave_days !== null || selectedReq.lwp_days !== null) && (
+                    <div className="mt-4 pt-3 border-t border-border space-y-1.5">
+                      {selectedReq.sick_leave_days !== null && selectedReq.sick_leave_days > 0 && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Sick Leave Used:</span>
+                          <span className="font-medium text-amber-600 dark:text-amber-400">{selectedReq.sick_leave_days} Day(s)</span>
+                        </div>
+                      )}
+                      {selectedReq.annual_leave_days !== null && selectedReq.annual_leave_days > 0 && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Annual Leave Used:</span>
+                          <span className="font-medium text-blue-600 dark:text-blue-400">{selectedReq.annual_leave_days} Day(s)</span>
+                        </div>
+                      )}
+                      {selectedReq.lwp_days !== null && selectedReq.lwp_days > 0 && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Leave Without Pay (LWP):</span>
+                          <span className="font-medium text-purple-600 dark:text-purple-400">{selectedReq.lwp_days} Day(s)</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>

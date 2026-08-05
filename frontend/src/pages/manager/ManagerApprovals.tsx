@@ -313,6 +313,29 @@ export default function ManagerApprovals() {
                       <dd className="font-medium text-foreground">{new Date(selectedReq.applied_on).toLocaleDateString()}</dd>
                     </div>
                   </dl>
+                  
+                  {reqDetails?.request?.sick_leave_days !== undefined && (reqDetails.request.sick_leave_days !== null || reqDetails.request.annual_leave_days !== null || reqDetails.request.lwp_days !== null) && (
+                    <div className="mt-4 pt-3 border-t border-border space-y-1.5">
+                      {reqDetails.request.sick_leave_days !== null && reqDetails.request.sick_leave_days > 0 && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Sick Leave Used:</span>
+                          <span className="font-medium text-amber-600 dark:text-amber-400">{reqDetails.request.sick_leave_days} Day(s)</span>
+                        </div>
+                      )}
+                      {reqDetails.request.annual_leave_days !== null && reqDetails.request.annual_leave_days > 0 && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Annual Leave Used:</span>
+                          <span className="font-medium text-blue-600 dark:text-blue-400">{reqDetails.request.annual_leave_days} Day(s)</span>
+                        </div>
+                      )}
+                      {reqDetails.request.lwp_days !== null && reqDetails.request.lwp_days > 0 && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Leave Without Pay (LWP):</span>
+                          <span className="font-medium text-purple-600 dark:text-purple-400">{reqDetails.request.lwp_days} Day(s)</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>
