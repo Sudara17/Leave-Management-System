@@ -23,6 +23,10 @@ class RecentActivityResponse(BaseModel):
     role: str
     when: datetime
 
+class PaginatedRecentActivityResponse(BaseModel):
+    items: List[RecentActivityResponse]
+    total: int
+
 class HRDashboardCharts(BaseModel):
     department_distribution: List[dict]
     monthly_trend: List[dict]

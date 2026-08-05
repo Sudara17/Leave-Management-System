@@ -34,8 +34,8 @@ export const getHRDashboardSummary = async () => {
   return response.data;
 };
 
-export const getHRRecentActivity = async () => {
-  const response = await hrApiClient.get('/hr/dashboard/recent-activity');
+export const getHRRecentActivity = async (params?: { skip?: number; limit?: number }) => {
+  const response = await hrApiClient.get('/hr/dashboard/recent-activity', { params });
   return response.data;
 };
 

@@ -14,7 +14,7 @@ from app.models.company_policy import CompanyPolicy
 from app.models.policy_acceptance import PolicyAcceptance
 from app.models.audit_log import AuditLog
 from app.security.rbac import get_current_hr
-from app.schemas.hr_dashboard import HRDashboardSummary, RecentActivityResponse, HRDashboardCharts
+from app.schemas.hr_dashboard import HRDashboardSummary, RecentActivityResponse, HRDashboardCharts, PaginatedRecentActivityResponse
 
 router = APIRouter()
 
@@ -68,24 +68,26 @@ def get_hr_dashboard_summary(
         available_leave=available_leave
     )
 
-@router.get("/dashboard/recent-activity", response_model=List[RecentActivityResponse])
+@router.get("/dashboard/recent-activity", response_model=PaginatedRecentActivityResponse)
 def get_recent_activity(
+    skip: int = 0,
+    limit: int = 10,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_hr)
 ):
-    # Fetch top 50 recent audit logs
-    logs = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(50).all()
+    total = db.query(func.count(AuditLog.id)).scalar() or 0
+    logs = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).offset(skip).limit(limit).all()
     
-    result = []
+    items = []
     for log in logs:
         who = "System"
         if log.user:
             if log.user.employee:
-                who = f"{log.user.employee.first_name} {log.user.employee.last_name}"
+                who = f"{log.user.employee.first_name or ''} {log.user.employee.last_name or ''}".strip()
             else:
                 who = log.user.username
                 
-        result.append(RecentActivityResponse(
+        items.append(RecentActivityResponse(
             id=log.id,
             action=log.action,
             details=log.details or "",
@@ -94,7 +96,7 @@ def get_recent_activity(
             when=log.timestamp
         ))
         
-    return result
+    return PaginatedRecentActivityResponse(items=items, total=total)
 
 @router.get("/dashboard/charts", response_model=HRDashboardCharts)
 def get_hr_dashboard_charts(

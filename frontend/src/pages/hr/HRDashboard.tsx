@@ -15,6 +15,7 @@ import { getLeaveDetails } from '../../lib/api/employee';
 import EmployeeFormDrawer from '../../components/hr/EmployeeFormDrawer';
 import LeaveCalendar from '../../components/LeaveCalendar';
 import LeaveDetailsDrawer from '../../components/LeaveDetailsDrawer';
+import CalendarAction from '../../components/common/CalendarAction';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useToastStore } from '../../store/toastStore';
 
@@ -38,9 +39,15 @@ export default function HRDashboard() {
   const navigate = useNavigate();
   const [summary, setSummary] = useState<any>(null);
   const [activities, setActivities] = useState<any[]>([]);
+  const [totalActivities, setTotalActivities] = useState(0);
+  const [page, setPage] = useState(0);
+  const limit = 10;
+  
   const [chartsData, setChartsData] = useState<any>(null);
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const [rawCalendarEvents, setRawCalendarEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
@@ -51,18 +58,34 @@ export default function HRDashboard() {
     fetchDashboardData();
   }, []);
 
+  useEffect(() => {
+    fetchActivities();
+  }, [page]);
+
+  const fetchActivities = async () => {
+    setActivitiesLoading(true);
+    try {
+      const actRes = await hrApiClient.get(`/hr/dashboard/recent-activity?skip=${page * limit}&limit=${limit}`).then(r => r.data);
+      setActivities(actRes.items || actRes);
+      setTotalActivities(actRes.total || (actRes.items ? actRes.items.length : actRes.length) || 0);
+    } catch (error) {
+      console.error("Error fetching activities", error);
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
+
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [sumRes, actRes, chartsRes, calRes] = await Promise.all([
+      const [sumRes, chartsRes, calRes] = await Promise.all([
         hrApiClient.get('/hr/dashboard/summary').then(r => r.data),
-        hrApiClient.get('/hr/dashboard/recent-activity').then(r => r.data),
         hrApiClient.get('/hr/dashboard/charts').then(r => r.data),
         getHrCalendar()
       ]);
       setSummary(sumRes);
-      setActivities(actRes);
       setChartsData(chartsRes);
+      setRawCalendarEvents(calRes);
       
       const formattedEvents = calRes.map((req: any) => {
         let bgColor = '#f59e0b'; // amber-500
@@ -145,6 +168,8 @@ export default function HRDashboard() {
   const monthlyTrend = chartsData?.monthly_trend || [];
   const deptData = chartsData?.department_distribution || [];
 
+  const totalPages = Math.ceil(totalActivities / limit) || 1;
+
   return (
     <div className="space-y-6 p-6 pb-20 bg-background text-foreground">
       <EmployeeFormDrawer 
@@ -206,11 +231,15 @@ export default function HRDashboard() {
             <h3 className="text-lg font-semibold text-foreground">Recent Activity</h3>
             <button onClick={() => navigate('/hr/audit-logs')} className="text-sm font-medium text-primary hover:text-primary/80">View Logs</button>
           </div>
-          <div className="flex-1 p-0">
-            {activities.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground text-sm">No recent activity.</div>
+          <div className="flex-1 p-0 flex flex-col">
+            {activitiesLoading ? (
+              <div className="flex-1 flex items-center justify-center p-8">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary"></div>
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="flex-1 p-8 text-center text-muted-foreground text-sm">No recent activity.</div>
             ) : (
-              <ul className="divide-y divide-border">
+              <ul className="divide-y divide-border flex-1">
                 {activities.map((act, i) => (
                   <li key={i} className="p-4 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between">
@@ -224,13 +253,36 @@ export default function HRDashboard() {
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground text-right">
-                        <div>{new Date(act.timestamp).toLocaleDateString()}</div>
-                        <div>{new Date(act.timestamp).toLocaleTimeString()}</div>
+                        <div>{new Date(act.when).toLocaleDateString()}</div>
+                        <div>{new Date(act.when).toLocaleTimeString()}</div>
                       </div>
                     </div>
                   </li>
                 ))}
               </ul>
+            )}
+            
+            {/* Pagination Controls */}
+            {!activitiesLoading && activities.length > 0 && (
+              <div className="border-t border-border p-4 flex items-center justify-between bg-card text-xs">
+                <span className="text-muted-foreground">Showing {page * limit + 1}–{Math.min((page + 1) * limit, totalActivities)} of {totalActivities}</span>
+                <div className="flex gap-2">
+                  <button 
+                    disabled={page === 0}
+                    onClick={() => setPage(p => p - 1)}
+                    className="rounded px-3 py-1.5 border border-border hover:bg-muted disabled:opacity-50 transition-colors"
+                  >
+                    Previous
+                  </button>
+                  <button 
+                    disabled={page >= totalPages - 1}
+                    onClick={() => setPage(p => p + 1)}
+                    className="rounded px-3 py-1.5 border border-border hover:bg-muted disabled:opacity-50 transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -251,10 +303,14 @@ export default function HRDashboard() {
             />
           </div>
 
-          <div className="mt-4 pt-4 border-t border-border flex flex-wrap gap-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Approved</div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Pending</div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-slate-500"></div> Other</div>
+          <div className="mt-4 pt-4 border-t border-border flex flex-col gap-4">
+            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Approved</div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Pending</div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-slate-500"></div> Other</div>
+            </div>
+            
+            <CalendarAction leaves={rawCalendarEvents} fullWidth={true} label="Add to My Calendar" />
           </div>
         </div>
         

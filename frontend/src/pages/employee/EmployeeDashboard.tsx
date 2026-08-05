@@ -15,6 +15,7 @@ export default function EmployeeDashboard() {
   const [balances, setBalances] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const [rawCalendarEvents, setRawCalendarEvents] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
@@ -37,6 +38,7 @@ export default function EmployeeDashboard() {
       setBalances(balData);
       setHistory(histData);
       setNotifications(notifData);
+      setRawCalendarEvents(calData);
       
       const formattedEvents = calData.map((req: any) => {
         let bgColor = '#f59e0b'; // amber-500 (Pending)
@@ -221,11 +223,15 @@ export default function EmployeeDashboard() {
             />
           </div>
 
-          <div className="mt-4 pt-4 border-t border-border flex flex-wrap gap-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Approved</div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Pending</div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-rose-500"></div> Rejected</div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-slate-500"></div> Withdrawn</div>
+          <div className="mt-4 pt-4 border-t border-border flex flex-col gap-4">
+            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Approved</div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Pending</div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-rose-500"></div> Rejected</div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-slate-500"></div> Withdrawn</div>
+            </div>
+            
+            <CalendarAction leaves={rawCalendarEvents} fullWidth={true} label="Add to My Calendar" />
           </div>
         </div>
 

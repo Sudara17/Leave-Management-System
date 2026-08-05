@@ -10,6 +10,7 @@ import { getLeaveDetails } from '../../lib/api/manager';
 import { useNavigate } from 'react-router-dom';
 import LeaveCalendar from '../../components/LeaveCalendar';
 import LeaveDetailsDrawer from '../../components/LeaveDetailsDrawer';
+import CalendarAction from '../../components/common/CalendarAction';
 import { useToastStore } from '../../store/toastStore';
 
 export default function ManagerDashboard() {
@@ -20,6 +21,7 @@ export default function ManagerDashboard() {
   const [approvals, setApprovals] = useState<any[]>([]);
   const [upcoming, setUpcoming] = useState<any[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const [rawCalendarEvents, setRawCalendarEvents] = useState<any[]>([]);
 
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [reqDetails, setReqDetails] = useState<any | null>(null);
@@ -38,6 +40,7 @@ export default function ManagerDashboard() {
       setSummary(sumData);
       setApprovals(appData.slice(0, 5)); // Top 5 pending
       setUpcoming(upcomingData);
+      setRawCalendarEvents(calData);
 
       const formattedEvents = calData.map((req: any) => {
         let bgColor = '#f59e0b'; // amber-500
@@ -225,10 +228,13 @@ export default function ManagerDashboard() {
                 }}
               />
             </div>
-            <div className="mt-4 pt-4 border-t border-border flex flex-wrap gap-3 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Approved</div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Pending</div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-slate-500"></div> Withdrawn/Other</div>
+            <div className="mt-4 pt-4 border-t border-border flex flex-col gap-4">
+              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Approved</div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Pending</div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-slate-500"></div> Withdrawn/Other</div>
+              </div>
+              <CalendarAction leaves={rawCalendarEvents} fullWidth={true} label="Add to My Calendar" />
             </div>
           </div>
 
